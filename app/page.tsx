@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Button, Card, Link as FluentLink, Text } from "@fluentui/react-components";
 import { rolesFor, canView } from "@/kit/auth/roles";
 import { getSession } from "@/kit/auth/session";
 import { loadApps } from "@/kit/config/loader";
@@ -9,18 +9,17 @@ export default async function Home() {
   const session = await getSession();
   if (!session) {
     return (
-      <div className="rounded border bg-white p-6">
-        <h1 className="text-xl font-semibold">Internal Tools Kit</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Sign in with your organisation account to see the apps you have access to.
-        </p>
-        <a
-          href="/api/auth/login"
-          className="mt-4 inline-block rounded bg-slate-900 px-4 py-2 text-sm text-white"
-        >
-          Sign in
-        </a>
-      </div>
+      <Card>
+        <Text as="h1" size={600} weight="semibold">
+          Internal Tools Kit
+        </Text>
+        <Text>Sign in with your organisation account to see the apps you have access to.</Text>
+        <div>
+          <Button as="a" href="/api/auth/login" appearance="primary">
+            Sign in
+          </Button>
+        </div>
+      </Card>
     );
   }
 
@@ -32,29 +31,35 @@ export default async function Home() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold">Apps</h1>
-      <ul className="mt-4 space-y-2">
+      <Text as="h1" size={600} weight="semibold">
+        Apps
+      </Text>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
         {apps.map(({ slug, config, visible }) => (
-          <li key={slug} className="rounded border bg-white p-4">
-            <div className="flex items-center justify-between">
+          <Card key={slug}>
+            <div
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+            >
               <div>
-                <div className="font-medium">{config.name}</div>
-                <div className="text-sm text-slate-500">
-                  owner: {config.owner} · data source: {config.datasource}
+                <Text weight="semibold">{config.name}</Text>
+                <div>
+                  <Text size={200}>
+                    owner: {config.owner} · data source: {config.datasource}
+                  </Text>
                 </div>
               </div>
               {visible ? (
-                <Link href={`/apps/${slug}`} className="text-sm text-blue-700 hover:underline">
+                <FluentLink as="a" href={`/apps/${slug}`}>
                   Open
-                </Link>
+                </FluentLink>
               ) : (
-                <span className="text-sm text-slate-400">No access</span>
+                <Text size={200}>No access</Text>
               )}
             </div>
-          </li>
+          </Card>
         ))}
-      </ul>
-      {apps.length === 0 && <p className="text-sm text-slate-600">No apps configured yet.</p>}
+      </div>
+      {apps.length === 0 && <Text>No apps configured yet.</Text>}
     </div>
   );
 }

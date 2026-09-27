@@ -1,3 +1,14 @@
+import {
+  Card,
+  Link as FluentLink,
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+  Text,
+} from "@fluentui/react-components";
 import { getSession } from "@/kit/auth/session";
 import { prisma } from "@/kit/db";
 
@@ -7,12 +18,9 @@ export default async function AuditPage() {
   const session = await getSession();
   if (!session) {
     return (
-      <p className="text-sm">
-        <a href="/api/auth/login" className="text-blue-700 underline">
-          Sign in
-        </a>{" "}
-        to view the audit log.
-      </p>
+      <Text>
+        <FluentLink href="/api/auth/login">Sign in</FluentLink> to view the audit log.
+      </Text>
     );
   }
 
@@ -22,61 +30,73 @@ export default async function AuditPage() {
   ]);
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
       <section>
-        <h1 className="text-xl font-semibold">Audit log</h1>
-        <p className="text-sm text-slate-500">Append-only. Newest first.</p>
-        <table className="mt-4 w-full border-collapse bg-white text-sm">
-          <thead>
-            <tr className="border-b text-left text-slate-600">
-              <th className="px-3 py-2 font-medium">when</th>
-              <th className="px-3 py-2 font-medium">actor</th>
-              <th className="px-3 py-2 font-medium">app</th>
-              <th className="px-3 py-2 font-medium">action</th>
-              <th className="px-3 py-2 font-medium">record</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.id} className="border-b">
-                <td className="px-3 py-2 text-slate-500">{entry.createdAt.toISOString()}</td>
-                <td className="px-3 py-2">{entry.actor}</td>
-                <td className="px-3 py-2">{entry.app}</td>
-                <td className="px-3 py-2">{entry.action}</td>
-                <td className="px-3 py-2 text-slate-500">{entry.recordId}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Text as="h1" size={600} weight="semibold">
+          Audit log
+        </Text>
+        <div>
+          <Text size={200}>Append-only. Newest first.</Text>
+        </div>
+        <Card style={{ marginTop: 16, padding: 0 }}>
+          <Table size="small" aria-label="Audit log">
+            <TableHeader>
+              <TableRow>
+                <TableHeaderCell>when</TableHeaderCell>
+                <TableHeaderCell>actor</TableHeaderCell>
+                <TableHeaderCell>app</TableHeaderCell>
+                <TableHeaderCell>action</TableHeaderCell>
+                <TableHeaderCell>record</TableHeaderCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {entries.map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell>{entry.createdAt.toISOString()}</TableCell>
+                  <TableCell>{entry.actor}</TableCell>
+                  <TableCell>{entry.app}</TableCell>
+                  <TableCell>{entry.action}</TableCell>
+                  <TableCell>{entry.recordId}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold">Mock payment ledger</h2>
-        <p className="text-sm text-slate-500">
-          One row per executed refund. The approval request id is the idempotency key.
-        </p>
-        <table className="mt-4 w-full border-collapse bg-white text-sm">
-          <thead>
-            <tr className="border-b text-left text-slate-600">
-              <th className="px-3 py-2 font-medium">when</th>
-              <th className="px-3 py-2 font-medium">amount</th>
-              <th className="px-3 py-2 font-medium">refund request</th>
-              <th className="px-3 py-2 font-medium">approval request id</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ledger.map((row) => (
-              <tr key={row.id} className="border-b">
-                <td className="px-3 py-2 text-slate-500">{row.createdAt.toISOString()}</td>
-                <td className="px-3 py-2">
-                  {row.amount} {row.currency}
-                </td>
-                <td className="px-3 py-2 text-slate-500">{row.recordId}</td>
-                <td className="px-3 py-2 text-slate-500">{row.approvalRequestId}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Text as="h2" size={500} weight="semibold">
+          Mock payment ledger
+        </Text>
+        <div>
+          <Text size={200}>
+            One row per executed refund. The approval request id is the idempotency key.
+          </Text>
+        </div>
+        <Card style={{ marginTop: 16, padding: 0 }}>
+          <Table size="small" aria-label="Mock payment ledger">
+            <TableHeader>
+              <TableRow>
+                <TableHeaderCell>when</TableHeaderCell>
+                <TableHeaderCell>amount</TableHeaderCell>
+                <TableHeaderCell>refund request</TableHeaderCell>
+                <TableHeaderCell>approval request id</TableHeaderCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ledger.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>{row.createdAt.toISOString()}</TableCell>
+                  <TableCell>
+                    {row.amount} {row.currency}
+                  </TableCell>
+                  <TableCell>{row.recordId}</TableCell>
+                  <TableCell>{row.approvalRequestId}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       </section>
     </div>
   );

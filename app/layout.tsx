@@ -1,6 +1,7 @@
+import { Body1, Divider, Link as FluentLink, Text } from "@fluentui/react-components";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getSession } from "@/kit/auth/session";
+import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,38 +13,51 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en">
-      <body className="bg-slate-50 text-slate-900">
-        <header className="border-b bg-white">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-            <Link href="/" className="font-semibold">
-              Internal Tools
-            </Link>
-            <nav className="flex items-center gap-4 text-sm">
-              <Link href="/approvals" className="text-slate-600 hover:text-slate-900">
-                Approvals
-              </Link>
-              <Link href="/audit" className="text-slate-600 hover:text-slate-900">
-                Audit log
-              </Link>
-              {session ? (
-                <>
-                  <span className="text-slate-500">
-                    {session.name} · {session.groups.join(", ") || "no groups"}
-                  </span>
-                  <a href="/api/auth/logout" className="text-slate-600 hover:text-slate-900">
-                    Sign out
-                  </a>
-                </>
-              ) : (
-                <a href="/api/auth/login" className="text-slate-600 hover:text-slate-900">
-                  Sign in
-                </a>
-              )}
-            </nav>
-          </div>
-        </header>
-        <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      <body>
+        <Providers>
+          <header style={{ background: "#fff" }}>
+            <div
+              style={{
+                margin: "0 auto",
+                maxWidth: 1100,
+                padding: "12px 24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+              }}
+            >
+              <Text weight="semibold" size={400}>
+                <FluentLink as="a" href="/" appearance="subtle">
+                  Internal Tools
+                </FluentLink>
+              </Text>
+              <nav style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <FluentLink as="a" href="/approvals">
+                  Approvals
+                </FluentLink>
+                <FluentLink as="a" href="/audit">
+                  Audit log
+                </FluentLink>
+                {session ? (
+                  <>
+                    <Body1>
+                      {session.name} · {session.groups.join(", ") || "no groups"}
+                    </Body1>
+                    <FluentLink href="/api/auth/logout">Sign out</FluentLink>
+                  </>
+                ) : (
+                  <FluentLink href="/api/auth/login">Sign in</FluentLink>
+                )}
+              </nav>
+            </div>
+            <Divider />
+          </header>
+          <main style={{ margin: "0 auto", maxWidth: 1100, padding: "32px 24px" }}>{children}</main>
+        </Providers>
       </body>
     </html>
   );
 }
+
+export const dynamic = "force-dynamic";

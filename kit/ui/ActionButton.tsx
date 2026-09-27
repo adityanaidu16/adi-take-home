@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, MessageBar, MessageBarBody } from "@fluentui/react-components";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/apps/[slug]/actions";
 
@@ -8,35 +9,38 @@ export function ActionButton({
   risk,
   disabled,
   run,
+  onResult,
 }: {
   label: string;
   risk?: "low" | "high";
   disabled?: boolean;
   run: () => Promise<ActionResult>;
+  /** Lets a parent keep the message visible when this row disappears. */
+  onResult?: (result: ActionResult) => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
 
   return (
-    <span className="inline-flex items-center gap-2">
-      <button
-        type="button"
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <Button
+        appearance={risk === "high" ? "primary" : "secondary"}
+        size="small"
         disabled={pending || disabled}
         onClick={() =>
           startTransition(async () => {
-            setResult(await run());
+            const outcome = await run();
+            setResult(outcome);
+            onResult?.(outcome);
           })
         }
-        className={`rounded px-2 py-1 text-xs text-white disabled:opacity-50 ${
-          risk === "high" ? "bg-rose-700" : "bg-slate-800"
-        }`}
       >
         {pending ? "Working…" : label}
-      </button>
-      {result && (
-        <span className={`text-xs ${result.ok ? "text-emerald-700" : "text-rose-700"}`}>
-          {result.message}
-        </span>
+      </Button>
+      {result && !onResult && (
+        <MessageBar intent={result.ok ? "success" : "error"}>
+          <MessageBarBody>{result.message}</MessageBarBody>
+        </MessageBar>
       )}
     </span>
   );

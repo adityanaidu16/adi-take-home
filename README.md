@@ -16,6 +16,10 @@ The model is:
 
 Building app #1 costs a platform; app #11 costs a YAML file.
 
+The renderer uses [Fluent UI v9](https://react.fluentui.dev) — the same design
+language as Power Apps' modern controls and the rest of Microsoft 365 — so the
+apps look familiar to people moving off Power Apps.
+
 ## Run it
 
 Requires Node 20 and Docker.
