@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
-import { actions as registeredActions } from "@/kit/blocks";
+import { actions as registeredActions, dataSources } from "@/kit/blocks";
 import { parseAppConfig } from "@/kit/config/loader";
 import type { AppConfig } from "@/kit/config/schema";
 
@@ -14,6 +14,7 @@ export type RuleName =
   | "approval_changed"
   | "roles_changed"
   | "sensitive_visibility_changed"
+  | "sensitive_field_exposed"
   | "high_risk_action";
 
 export type Rules = Record<RuleName, { enabled: boolean; reason: string }>;
@@ -51,6 +52,13 @@ function safeParse(source: string, label: string): AppConfig | null {
 
 function approvalOf(config: AppConfig, use: string) {
   return config.actions.find((a) => a.use === use)?.approval ?? null;
+}
+
+/** Fields the data source marks sensitive that this config puts on screen. */
+function sensitiveColumns(config: AppConfig): string[] {
+  return (dataSources[config.datasource]?.fields ?? [])
+    .filter((f) => f.sensitive && config.view.columns.includes(f.name))
+    .map((f) => f.name);
 }
 
 function stable(value: unknown): string {
@@ -96,8 +104,18 @@ export function classify(changes: ChangedFile[], rules: Rules): Classification {
       }
     }
 
+    // Putting a code-declared sensitive field on a screen for the first time is
+    // an engineering decision, whether the app is new or being extended. The
+    // `show_sensitive_to` rule below only fires once the field is already there.
+    const newlyExposed = sensitiveColumns(head).filter(
+      (name) => !base || !sensitiveColumns(base).includes(name),
+    );
+    if (newlyExposed.length > 0) {
+      add("sensitive_field_exposed", `${change.path} shows ${newlyExposed.join(", ")}`);
+    }
+
     if (!base) {
-      // New app: nothing to compare against, so only content rules apply.
+      // New app: nothing else to compare against.
       continue;
     }
 

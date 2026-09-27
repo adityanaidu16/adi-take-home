@@ -122,8 +122,13 @@ read path:
 compares keys — it does not diff text, so reformatting never escalates. It
 escalates when: anything outside `apps/` changed, an app was deleted or a
 non-YAML file added under `apps/`, config fails validation, an `approval` block
-changed, `roles` changed on an existing app, `show_sensitive_to` changed, or the
-app uses an action declared `risk: high`.
+changed, `roles` changed on an existing app, `show_sensitive_to` changed, a
+*new* app puts a code-declared sensitive field on screen, or the app uses an
+action declared `risk: high`.
+
+The new-app rule exists because the diffing rules have nothing to compare a new
+file against: without it, the first app to show an IBAN would ship self-serve
+and only *later* changes to who sees it would reach an engineer.
 
 It is deterministic — no model call — and the rules live in `review/rules.yaml`
 so the client can tune them. `.github/workflows/checks.yml` runs it on every
