@@ -7,6 +7,7 @@ import {
   Caption1,
   Title3,
 } from "@fluentui/react-components";
+import { Fragment } from "react";
 
 export type Crumb = { label: string; href?: string };
 
@@ -25,12 +26,14 @@ export function PageHeader({
     <div style={{ marginBottom: 16 }}>
       <Breadcrumb size="small" aria-label="Breadcrumb">
         {crumbs.map((crumb, i) => (
-          <BreadcrumbItem key={crumb.label}>
-            <BreadcrumbButton href={crumb.href} current={i === crumbs.length - 1}>
-              {crumb.label}
-            </BreadcrumbButton>
+          <Fragment key={crumb.label}>
+            <BreadcrumbItem>
+              <BreadcrumbButton href={crumb.href} current={i === crumbs.length - 1}>
+                {crumb.label}
+              </BreadcrumbButton>
+            </BreadcrumbItem>
             {i < crumbs.length - 1 && <BreadcrumbDivider />}
-          </BreadcrumbItem>
+          </Fragment>
         ))}
       </Breadcrumb>
 

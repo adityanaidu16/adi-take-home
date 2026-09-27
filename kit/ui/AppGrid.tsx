@@ -74,6 +74,12 @@ const useStyles = makeStyles({
   drawerActions: { display: "flex", flexWrap: "wrap", ...shorthands.gap("8px"), marginTop: "16px" },
 });
 
+function compareCells(a: string, b: string) {
+  const [na, nb] = [Number(a), Number(b)];
+  if (a !== "" && b !== "" && !Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+  return (a ?? "").localeCompare(b ?? "");
+}
+
 export function AppGrid({
   columns,
   rows,
@@ -97,7 +103,7 @@ export function AppGrid({
   const definitions: TableColumnDefinition<GridRow>[] = columns.map((column) =>
     createTableColumn<GridRow>({
       columnId: column,
-      compare: (a, b) => (a.cells[column] ?? "").localeCompare(b.cells[column] ?? ""),
+      compare: (a, b) => compareCells(a.cells[column] ?? "", b.cells[column] ?? ""),
       renderHeaderCell: () => (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           {column.replace(/_/g, " ")}
@@ -214,7 +220,16 @@ export function AppGrid({
         </Caption1>
       </div>
 
-      <Drawer type="inline" separator open={selected !== null} position="end" style={{ width: 340 }}>
+      <Drawer
+        type="overlay"
+        separator
+        open={selected !== null}
+        position="end"
+        onOpenChange={(_, data) => {
+          if (!data.open) setSelectedId(null);
+        }}
+        style={{ width: 380 }}
+      >
         <DrawerHeader>
           <DrawerHeaderTitle
             action={

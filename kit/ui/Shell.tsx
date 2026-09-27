@@ -207,26 +207,67 @@ export function Shell({
           aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
           onClick={() => setCollapsed((value) => !value)}
         />
-        <Button
-          appearance="transparent"
-          className={styles.headerButton}
-          icon={<GridDotsRegular />}
-          aria-label="App launcher"
-        />
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <Button
+              appearance="transparent"
+              className={styles.headerButton}
+              icon={<GridDotsRegular />}
+              aria-label="App launcher"
+            />
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList>
+              {apps.map((app) => (
+                <MenuItem
+                  key={app.slug}
+                  icon={<TableRegular />}
+                  disabled={!app.visible}
+                  onClick={() => window.location.assign(`/apps/${app.slug}`)}
+                >
+                  {app.name}
+                </MenuItem>
+              ))}
+              <Divider />
+              <MenuItem
+                icon={<CheckmarkCircleRegular />}
+                onClick={() => window.location.assign("/approvals")}
+              >
+                Approvals
+              </MenuItem>
+              <MenuItem
+                icon={<HistoryRegular />}
+                onClick={() => window.location.assign("/audit")}
+              >
+                Audit log
+              </MenuItem>
+            </MenuList>
+          </MenuPopover>
+        </Menu>
         <Text className={styles.product}>Internal Tools</Text>
         <Divider vertical style={{ height: 20, opacity: 0.4 }} />
         <Text className={styles.appName} size={300}>
           Operations
         </Text>
         <div className={styles.spacer} />
-        <SearchBox className={styles.search} placeholder="Search" appearance="filled-lighter" />
+        <Tooltip content="Search is not part of this prototype" relationship="description">
+          <SearchBox
+            className={styles.search}
+            placeholder="Search (not in this prototype)"
+            appearance="filled-lighter"
+            disabled
+          />
+        </Tooltip>
         <div className={styles.spacer} />
-        <Button
-          appearance="transparent"
-          className={styles.headerButton}
-          icon={<SettingsRegular />}
-          aria-label="Settings"
-        />
+        <Tooltip content="Settings are not part of this prototype" relationship="label">
+          <Button
+            appearance="transparent"
+            className={styles.headerButton}
+            icon={<SettingsRegular />}
+            aria-label="Settings"
+            disabled
+          />
+        </Tooltip>
         {user ? (
           <Menu>
             <MenuTrigger disableButtonEnhancement>

@@ -117,7 +117,7 @@ export function ApprovalsList({
           <div key={item.id}>
             {index > 0 && <Divider />}
             <div className={styles.item}>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, flexGrow: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <Text weight="semibold">{item.action.replace(/_/g, " ")}</Text>
                   <Badge appearance="tint" color="brand">
