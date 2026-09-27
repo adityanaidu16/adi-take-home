@@ -1,0 +1,58 @@
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: kit
+          POSTGRES_PASSWORD: kit
+          POSTGRES_DB: kit
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://kit:kit@localhost:5433/kit?schema=public
+      SESSION_SECRET: ci-only-session-secret-at-least-32-bytes
+      DIRECTORY_FILE: dev/directory.json
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the classifier diffs against the merge base
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run db:push
+      - run: npm run seed
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run validate
+
+      # The verdict belongs on every PR, so the review path is a property of the
+      # change rather than something a person remembers to check.
+      - name: Classify the change
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags origin \
+            "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+          npm run review -- --base "origin/${{ github.base_ref }}" | tee verdict.txt
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat verdict.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

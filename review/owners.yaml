@@ -1,0 +1,25 @@
+# Who may confirm a SELF-SERVE change, by the `owner` team named in an app's YAML.
+#
+# Confirmation from chat is only as trustworthy as this file: a Slack reaction is
+# an identity claim, not an authorization. `npm run approve` refuses anything that
+# does not resolve to a member of the owning team here, and refuses ESCALATE
+# outright — no amount of confirming replaces an engineer.
+#
+# In production this should be generated from the same Entra groups that drive
+# app roles, not hand-maintained.
+teams:
+  payments-ops:
+    - name: Maria Alvarez
+      slack: U01MARIA
+      github: maria-ops
+  platform-eng:
+    - name: Jordan Lee
+      slack: U02JORDAN
+      github: jordan-plat
+    - name: Alex Chen
+      slack: U03ALEX
+      github: alex-plat
+  refunds-approvers:
+    - name: Priya Nair
+      slack: U04PRIYA
+      github: priya-fin

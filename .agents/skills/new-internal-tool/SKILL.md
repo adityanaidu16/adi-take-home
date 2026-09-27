@@ -123,3 +123,18 @@ YAML to know what they are approving:
 The requester confirming the recording is a *functional* check, not a security
 one. Safety comes from the structure: config cannot express anything dangerous,
 and everything else escalates.
+
+## 6. Confirmation from the owning team
+
+A `SELF-SERVE` change still needs the team that owns the app to say yes. That
+confirmation can arrive from chat, but it is only ever accepted through:
+
+```bash
+npm run approve -- --by slack:U01MARIA --base main
+```
+
+which refuses anyone outside the `owner` team named in the app's YAML, refuses
+`ESCALATE` regardless of who is asking, and prints the approval record to attach
+to the PR. Never merge on the strength of a message alone: a reaction or a
+"looks good" is an identity claim, not an authorization. `review/owners.yaml`
+maps teams to handles and is itself an `ESCALATE` file to change.
