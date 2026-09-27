@@ -9,10 +9,7 @@
           "requestParam": "grant_type",
           "match": "authorization_code",
           "claims": {
-            "oid": "${subject}",
-            "tid": "00000000-0000-0000-0000-0000000000aa",
-            "name": "${subject}",
-            "preferred_username": "${subject}@fintech.example"
+            "tid": "00000000-0000-0000-0000-0000000000aa"
           }
         }
       ]
