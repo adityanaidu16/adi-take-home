@@ -24,15 +24,16 @@ const teal: BrandVariants = {
   160: "#C4DBDE",
 };
 
+// `--font-kit-sans` is defined by next/font in app/layout.tsx.
 const fontFamily =
-  '"Inter", "Public Sans", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
+  'var(--font-kit-sans), "Public Sans", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
 
 const base = createLightTheme(teal);
 
 export const kitTheme: Theme = {
   ...base,
   fontFamilyBase: fontFamily,
-  fontFamilyNumeric: `"Inter", ui-monospace, "SF Mono", Menlo, monospace`,
+  fontFamilyNumeric: `var(--font-kit-sans), ui-monospace, "SF Mono", Menlo, monospace`,
   // Squarer than Fluent's default, and a warmer paper than Microsoft's greys.
   borderRadiusMedium: "3px",
   borderRadiusLarge: "4px",
