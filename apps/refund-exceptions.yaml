@@ -7,7 +7,6 @@ roles:
 view:
   columns: [customer_name, amount, exception_reason, requested_by, status]
   visible_to: [analyst, approver]
-  show_sensitive_to: [approver]
 actions:
   - use: update_exception_status
     allowed_roles: [analyst]
