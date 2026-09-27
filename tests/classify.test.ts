@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, loadRules, type ChangedFile } from "@/review/classify";
+import { classify, loadRules, porcelainPath, type ChangedFile } from "@/review/classify";
 
 const rules = loadRules();
 
@@ -114,6 +114,13 @@ describe("review classifier", () => {
     const result = classify([added("apps/broken.yaml", "name: Broken\nowner: x\n")], rules);
 
     expect(result.reasons.join(" ")).toMatch(/fails validation/);
+  });
+
+  it("reads porcelain paths whatever the status letters are", () => {
+    expect(porcelainPath(" M apps/feature-flags.yaml")).toBe("apps/feature-flags.yaml");
+    expect(porcelainPath("?? apps/feature-flags.yaml")).toBe("apps/feature-flags.yaml");
+    expect(porcelainPath("M  apps/feature-flags.yaml")).toBe("apps/feature-flags.yaml");
+    expect(porcelainPath("R  apps/old.yaml -> apps/new.yaml")).toBe("apps/new.yaml");
   });
 
   it("ignores formatting-only changes", () => {
