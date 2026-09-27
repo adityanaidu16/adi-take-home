@@ -6,8 +6,8 @@ import {
   RendererProvider,
   renderToStyleElements,
   SSRProvider,
-  webLightTheme,
 } from "@fluentui/react-components";
+import { kitTheme } from "@/kit/ui/theme";
 import { useServerInsertedHTML } from "next/navigation";
 import { useRef, useState } from "react";
 
@@ -31,7 +31,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <RendererProvider renderer={renderer}>
       <SSRProvider>
-        <FluentProvider theme={webLightTheme}>{children}</FluentProvider>
+        <FluentProvider theme={kitTheme}>{children}</FluentProvider>
       </SSRProvider>
     </RendererProvider>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import { canView, rolesFor } from "@/kit/auth/roles";
 import { getSession } from "@/kit/auth/session";
 import { loadApps } from "@/kit/config/loader";
@@ -10,6 +11,10 @@ export const metadata: Metadata = {
   title: "Internal Tools",
 };
 
+// Exposed as a CSS variable because FluentProvider sets its own font-family on
+// the subtree, so the theme has to name the font rather than inherit it.
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-kit-sans" });
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
@@ -20,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }));
 
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body>
         <Providers>
           <Shell
