@@ -51,6 +51,45 @@ describe("review classifier", () => {
     expect(classify([added("apps/feature-flags.yaml", flagsApp)], rules).decision).toBe("SELF-SERVE");
   });
 
+  it("escalates an existing app that adds a sensitive column", () => {
+    const withIban = refundsApp.replace(
+      "columns: [customer_name, amount, status]",
+      "columns: [customer_name, amount, status, bank_account]",
+    );
+
+    const result = classify([modified("apps/refunds.yaml", refundsApp, withIban)], rules);
+
+    expect(result.decision).toBe("ESCALATE");
+    expect(result.reasons.join(" ")).toContain("bank_account");
+  });
+
+  it("escalates a new app that puts a sensitive field on screen", () => {
+    const withIban = refundsApp.replace(
+      "columns: [customer_name, amount, status]",
+      "columns: [customer_name, amount, status, bank_account]",
+    );
+
+    const result = classify([added("apps/refunds.yaml", withIban)], rules);
+
+    expect(result.decision).toBe("ESCALATE");
+    expect(result.reasons.join(" ")).toContain("bank_account");
+  });
+
+  it("does not flag sensitive exposure when the field was already on screen", () => {
+    const withIban = refundsApp.replace(
+      "columns: [customer_name, amount, status]",
+      "columns: [customer_name, amount, status, bank_account]",
+    );
+    const reordered = withIban.replace(
+      "columns: [customer_name, amount, status, bank_account]",
+      "columns: [customer_name, bank_account, amount, status]",
+    );
+
+    const result = classify([modified("apps/refunds.yaml", withIban, reordered)], rules);
+
+    expect(result.reasons.join(" ")).not.toContain("first time");
+  });
+
   it("escalates when an approval block is added", () => {
     const result = classify(
       [modified("apps/feature-flags.yaml", flagsApp, flagsAppWithApproval)],

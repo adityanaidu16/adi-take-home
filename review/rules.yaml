@@ -24,6 +24,9 @@ rules:
   sensitive_visibility_changed:
     enabled: true
     reason: "show_sensitive_to changed"
+  sensitive_field_exposed:
+    enabled: true
+    reason: "A code-declared sensitive field is put on screen for the first time"
   high_risk_action:
     enabled: true
     reason: "App uses an action declared risk: high in code"
