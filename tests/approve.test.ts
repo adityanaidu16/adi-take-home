@@ -73,6 +73,29 @@ describe("confirmation from chat", () => {
     if (!result.ok) expect(result.reason).toMatch(/needs an engineer/);
   });
 
+  it("refuses a change that hands the app to the confirmer's own team", () => {
+    const reassigned = flagsApp.replace("owner: platform-eng", "owner: payments-ops");
+    const result = approve(
+      [{ status: "M", path: "apps/feature-flags.yaml", base: flagsApp, head: reassigned }],
+      owners,
+      { kind: "slack", handle: "U01MARIA" },
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toMatch(/changes owner away from "platform-eng"/);
+  });
+
+  it("asks the owner on the base branch, not the one the change proposes", () => {
+    const reassigned = flagsApp.replace("owner: platform-eng", "owner: payments-ops");
+    const result = approve(
+      [{ status: "M", path: "apps/feature-flags.yaml", base: flagsApp, head: reassigned }],
+      owners,
+      { kind: "slack", handle: "U02JORDAN" },
+    );
+
+    expect(result.ok).toBe(false);
+  });
+
   it("refuses when the change touches the kit as well as an app", () => {
     expect(
       approve(

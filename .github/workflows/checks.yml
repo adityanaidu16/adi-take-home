@@ -50,7 +50,8 @@ jobs:
       - name: Classify the change
         if: github.event_name == 'pull_request'
         run: |
-          git fetch origin "${{ github.base_ref }}" --depth=0
+          git fetch --no-tags origin \
+            "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
           npm run review -- --base "origin/${{ github.base_ref }}" | tee verdict.txt
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat verdict.txt >> "$GITHUB_STEP_SUMMARY"

@@ -38,10 +38,26 @@ function memberOf(owners: Owners, team: string, approver: Approver): Member | un
   );
 }
 
-function ownerOf(change: ChangedFile): string | null {
-  if (!change.head) return null;
-  const parsed = YAML.parse(change.head) as { owner?: unknown } | null;
-  return typeof parsed?.owner === "string" ? parsed.owner : null;
+function ownerIn(source: string | undefined): string | null {
+  if (!source) return null;
+  try {
+    const parsed = YAML.parse(source) as { owner?: unknown } | null;
+    return typeof parsed?.owner === "string" ? parsed.owner : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The owner as it stands on the base branch, so a change cannot nominate the
+ * team that is about to confirm it. A new app has no base owner and can only
+ * be confirmed by a member of the team it names.
+ */
+function ownerToAsk(change: ChangedFile): { owner: string | null; reassigned: boolean } {
+  const base = ownerIn(change.base);
+  const head = ownerIn(change.head);
+  if (base && head && base !== head) return { owner: base, reassigned: true };
+  return { owner: base ?? head, reassigned: false };
 }
 
 /**
@@ -70,8 +86,14 @@ export function approve(
   const owned: { path: string; owner: string }[] = [];
   let approvedBy = approver.handle;
   for (const app of apps) {
-    const owner = ownerOf(app);
+    const { owner, reassigned } = ownerToAsk(app);
     if (!owner) return { ok: false, reason: `${app.path} declares no owner team.` };
+    if (reassigned) {
+      return {
+        ok: false,
+        reason: `${app.path} changes owner away from "${owner}". Handing an app to another team is an engineering review, not a confirmation.`,
+      };
+    }
     const found = memberOf(owners, owner, approver);
     if (!found) {
       return {
