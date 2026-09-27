@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { approve, performAction } from "@/kit/approvals/engine";
+import { approve, pendingRequestsFor, performAction } from "@/kit/approvals/engine";
 import { prisma } from "@/kit/db";
 import { AccessDenied, getAppView } from "@/kit/view";
 import { maria, priya, sam } from "./users";
@@ -114,8 +114,12 @@ describe("refunds app", () => {
     if (first.kind !== "pending" || second.kind !== "pending") throw new Error("expected pending");
 
     await approve(first.requestId, priya);
-    await expect(approve(second.requestId, priya)).rejects.toThrow(/already been paid/);
+    const outcome = await approve(second.requestId, priya);
+
+    expect(outcome.kind).toBe("cancelled");
     expect(await prisma.mockLedger.count()).toBe(1);
+    expect(await prisma.approvalRequest.count({ where: { status: "cancelled" } })).toBe(1);
+    expect(await pendingRequestsFor(priya)).toHaveLength(0);
   });
 
   it("records every step in the audit log", async () => {

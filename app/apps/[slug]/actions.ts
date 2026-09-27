@@ -34,6 +34,9 @@ export async function approveRequest(requestId: string): Promise<ActionResult> {
     if (outcome.kind === "already_decided") {
       return { ok: false, message: "This request was already decided." };
     }
+    if (outcome.kind === "cancelled") {
+      return { ok: false, message: `Cancelled: ${outcome.reason}` };
+    }
     return { ok: true, message: "Approved and executed." };
   } catch (err) {
     return { ok: false, message: (err as Error).message };

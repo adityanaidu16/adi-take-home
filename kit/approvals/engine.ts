@@ -11,7 +11,8 @@ import { AccessDenied, approverRolesFor } from "@/kit/view";
 export type ActionOutcome =
   | { kind: "executed"; requestId: string }
   | { kind: "pending"; requestId: string }
-  | { kind: "already_decided" };
+  | { kind: "already_decided" }
+  | { kind: "cancelled"; reason: string };
 
 /**
  * Approval is required if the action's own minimum rule fires OR the app
@@ -110,6 +111,16 @@ export async function approve(requestId: string, session: Session): Promise<Acti
     throw new AccessDenied("Maker-checker: you cannot approve your own request");
   }
 
+  // The pending request holds a snapshot taken when it was raised. If the
+  // action no longer applies to the record as it stands now — another request
+  // already paid it out — the request is dead and is closed rather than left
+  // in the queue with a button that can only fail.
+  const current = await getDataSource(config.datasource).readOne(request.recordId);
+  const action = getAction(request.action);
+  if (!current || (action.appliesTo && !action.appliesTo(current))) {
+    return cancelStale(request.id, request.app, request.action, request.recordId, session.username);
+  }
+
   return prisma.$transaction(async (tx) => {
     // Conditional update: only the transaction that flips pending -> approved
     // gets to run the action, so approving twice cannot execute twice.
@@ -141,13 +152,41 @@ export async function approve(requestId: string, session: Session): Promise<Acti
   });
 }
 
+async function cancelStale(
+  requestId: string,
+  app: string,
+  actionName: string,
+  recordId: string,
+  actor: string,
+): Promise<ActionOutcome> {
+  const reason = `${actionName} no longer applies to this record`;
+  return prisma.$transaction(async (tx) => {
+    const claimed = await tx.approvalRequest.updateMany({
+      where: { id: requestId, status: "pending" },
+      data: { status: "cancelled", decidedBy: actor, decidedAt: new Date() },
+    });
+    if (claimed.count !== 1) return { kind: "already_decided" };
+    await audit(
+      {
+        actor,
+        app,
+        action: `${actionName}.cancelled`,
+        recordId,
+        detail: { requestId, reason },
+      },
+      tx,
+    );
+    return { kind: "cancelled", reason };
+  });
+}
+
 export async function pendingRequestsFor(session: Session) {
   const requests = await prisma.approvalRequest.findMany({
     where: { status: "pending" },
     orderBy: { createdAt: "asc" },
   });
 
-  return requests.filter((request) => {
+  const visible = requests.filter((request) => {
     let config: AppConfig;
     try {
       config = loadApp(request.app);
@@ -157,4 +196,17 @@ export async function pendingRequestsFor(session: Session) {
     const roles = rolesFor(config, session);
     return approverRolesFor(config, request.action).some((r) => roles.includes(r));
   });
+
+  const live = await Promise.all(
+    visible.map(async (request) => {
+      const action = getAction(request.action);
+      if (!action.appliesTo) return true;
+      const current = await getDataSource(loadApp(request.app).datasource).readOne(
+        request.recordId,
+      );
+      return current ? action.appliesTo(current) : false;
+    }),
+  );
+
+  return visible.filter((_, i) => live[i]);
 }
