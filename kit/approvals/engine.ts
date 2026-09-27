@@ -60,6 +60,11 @@ export async function performAction(
   const row = await getDataSource(config.datasource).readOne(recordId);
   if (!row) throw new Error(`Record ${recordId} not found`);
 
+  const action = getAction(actionName);
+  if (action.appliesTo && !action.appliesTo(row)) {
+    throw new AccessDenied(`${actionName} no longer applies to this record`);
+  }
+
   const needsApproval = approvalRequired(config, actionName, row);
 
   return prisma.$transaction(async (tx) => {

@@ -76,6 +76,7 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
                         key={action.name}
                         label={action.label}
                         risk={action.risk}
+                        disabled={action.appliesTo ? !action.appliesTo(row) : false}
                         run={runAction.bind(null, view.slug, action.name, String(row.id))}
                       />
                     ))}

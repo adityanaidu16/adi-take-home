@@ -49,6 +49,12 @@ export type Action = {
    * OR the config rule fires.
    */
   minApproval?: ApprovalRule;
+  /**
+   * Whether the action still applies to a record — a refund that has been paid
+   * cannot be paid again. Checked on the server; the UI only uses it to grey
+   * the button out. Actions that can repeat leave it unset.
+   */
+  appliesTo?: (row: Row) => boolean;
   execute: (ctx: ActionContext) => Promise<void>;
 };
 

@@ -51,7 +51,17 @@ export const issueRefund: Action = {
     when: { field: "amount", gt: 500 },
     approverRoles: ["approver"],
   },
+  appliesTo: (row) => row.status !== "refunded",
   execute: async ({ tx, row, approvalRequestId }) => {
+    // Claim the source record first: two requests against the same refund, or a
+    // stale page, must not both pay out. Only the transaction that flips the
+    // status away from "pending" continues.
+    const claimed = await tx.refundRequest.updateMany({
+      where: { id: String(row.id), status: { not: "refunded" } },
+      data: { status: "refunded" },
+    });
+    if (claimed.count !== 1) throw new Error("This refund has already been paid.");
+
     // Stands in for the payment provider call. The approval request id is the
     // idempotency key and is unique in the database, so a retry cannot double-pay.
     await tx.mockLedger.create({
@@ -61,10 +71,6 @@ export const issueRefund: Action = {
         amount: Number(row.amount),
         currency: String(row.currency),
       },
-    });
-    await tx.refundRequest.update({
-      where: { id: String(row.id) },
-      data: { status: "refunded" },
     });
   },
 };

@@ -6,10 +6,12 @@ import type { ActionResult } from "@/app/apps/[slug]/actions";
 export function ActionButton({
   label,
   risk,
+  disabled,
   run,
 }: {
   label: string;
   risk?: "low" | "high";
+  disabled?: boolean;
   run: () => Promise<ActionResult>;
 }) {
   const [pending, startTransition] = useTransition();
@@ -19,7 +21,7 @@ export function ActionButton({
     <span className="inline-flex items-center gap-2">
       <button
         type="button"
-        disabled={pending}
+        disabled={pending || disabled}
         onClick={() =>
           startTransition(async () => {
             setResult(await run());

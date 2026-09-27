@@ -18,7 +18,12 @@ export type AppView = {
   columns: string[];
   rows: Row[];
   /** Actions this user is allowed to run, as declared in config. */
-  actions: { name: string; label: string; risk: "low" | "high" }[];
+  actions: {
+    name: string;
+    label: string;
+    risk: "low" | "high";
+    appliesTo?: (row: Row) => boolean;
+  }[];
   isApprover: boolean;
   origin: "postgres" | "sharepoint";
 };
@@ -48,7 +53,12 @@ export async function getAppView(slug: string, session: Session): Promise<AppVie
     .filter((entry) => entry.allowed_roles.some((r) => roles.includes(r)))
     .map((entry) => {
       const action = getAction(entry.use);
-      return { name: action.name, label: action.label, risk: action.risk };
+      return {
+        name: action.name,
+        label: action.label,
+        risk: action.risk,
+        appliesTo: action.appliesTo,
+      };
     });
 
   const isApprover = config.actions.some((entry) =>

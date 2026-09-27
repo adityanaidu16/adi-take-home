@@ -99,6 +99,25 @@ describe("refunds app", () => {
     ).rejects.toThrow();
   });
 
+  it("refuses to pay the same source record twice", async () => {
+    await performAction("refunds", "issue_refund", "small", sam);
+
+    await expect(performAction("refunds", "issue_refund", "small", sam)).rejects.toBeInstanceOf(
+      AccessDenied,
+    );
+    expect(await prisma.mockLedger.count()).toBe(1);
+  });
+
+  it("pays once when two pending requests for one record are both approved", async () => {
+    const first = await performAction("refunds", "issue_refund", "big", sam);
+    const second = await performAction("refunds", "issue_refund", "big", sam);
+    if (first.kind !== "pending" || second.kind !== "pending") throw new Error("expected pending");
+
+    await approve(first.requestId, priya);
+    await expect(approve(second.requestId, priya)).rejects.toThrow(/already been paid/);
+    expect(await prisma.mockLedger.count()).toBe(1);
+  });
+
   it("records every step in the audit log", async () => {
     const outcome = await performAction("refunds", "issue_refund", "big", sam);
     if (outcome.kind !== "pending") throw new Error("expected pending");

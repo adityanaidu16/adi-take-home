@@ -57,6 +57,35 @@ identity provider; the login page takes the username, e.g. `sam`, `priya`,
 too — the user who should *not* see the data, or who cannot approve their own
 request. Post the recording in the thread for the requester to confirm.
 
+### Local demo testing tips
+
+- Ensure an existing `.env` includes `DIRECTORY_FILE="dev/directory.json"`;
+  copying `.env.example` only when `.env` is absent will not add new variables.
+  Restart Next.js after changing environment variables.
+- Before recording, confirm the signed-in header shows the intended group:
+  `sam` / `refunds-analysts`, `priya` / `refunds-approvers`, or `maria` /
+  `ops-leads`. Use only the mock login's username field, not custom claims.
+  Use header Sign out to switch users; clear localhost cookies if a stale
+  identity persists. Restart the identity container after its config changes.
+- Database-backed checks can change the same local data used by the demo.
+  Run `npm run seed` immediately before a clean demo and do not run destructive
+  tests concurrently. Seeding resets the local ledger, approvals, and audit.
+- For a genuine duplicate-approval UI attempt, open the pending approvals page
+  in two tabs before approving. Approve in one, then click the stale button in
+  the other; refresh Audit log and compare both ledger count and request IDs.
+- Distinguish approval-request idempotency from source-record idempotency:
+  retrying the same approval and issuing a new action on an already-completed
+  record are different safety checks.
+- Keep supplemental adversarial evidence separate from a requested clean
+  demo recording. Never represent mock OIDC or mock ledger testing as a
+  real Entra or payment-provider validation.
+
+#### Devin Secrets Needed
+
+No external secrets are needed for the local demo; `.env.example` supplies
+local-only service configuration. Real Entra/Graph credentials are a separate,
+explicitly configured environment.
+
 ## 5. Reply
 
 Reply with: the verdict, the one-line description of what changed, the PR link,
