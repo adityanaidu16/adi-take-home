@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model RefundRequest {
+  id           String   @id @default(cuid())
+  customerName String
+  amount       Int
+  currency     String   @default("USD")
+  reason       String
+  status       String   @default("open")
+  bankAccount  String
+  createdAt    DateTime @default(now())
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String
+  environment String
+  enabled     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model ApprovalRequest {
+  id           String    @id @default(cuid())
+  app          String
+  action       String
+  recordId     String
+  requestedBy  String
+  status       String    @default("pending")
+  payload      Json
+  decidedBy    String?
+  createdAt    DateTime  @default(now())
+  decidedAt    DateTime?
+  ledgerEntry  MockLedger?
+}
+
+model MockLedger {
+  id                String          @id @default(cuid())
+  approvalRequestId String          @unique
+  approvalRequest   ApprovalRequest @relation(fields: [approvalRequestId], references: [id])
+  recordId          String
+  amount            Int
+  currency          String
+  createdAt         DateTime        @default(now())
+}
+
+// Append-only. Nothing in kit/ updates or deletes rows here.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String
+  app       String
+  action    String
+  recordId  String?
+  detail    Json?
+  createdAt DateTime @default(now())
+}

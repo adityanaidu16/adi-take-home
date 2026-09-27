@@ -1,0 +1,20 @@
+name: Refunds
+owner: payments-ops
+datasource: refund_requests
+roles:
+  analyst: [refunds-analysts]
+  approver: [refunds-approvers]
+view:
+  columns: [customer_name, amount, currency, reason, status, bank_account]
+  visible_to: [analyst, approver]
+  show_sensitive_to: [approver]
+  summary:
+    group_by: status
+    measure: amount
+    label: total refund value
+actions:
+  - use: issue_refund
+    allowed_roles: [analyst]
+    approval:
+      when: { field: amount, gt: 500 }
+      approver_roles: [approver]

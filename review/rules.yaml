@@ -1,0 +1,29 @@
+# Which changes an internal-tools request can ship on its own, and which need a
+# human engineer. Deterministic: no model is involved in this decision.
+#
+# Tune these to taste; every rule below can be switched off.
+rules:
+  file_outside_apps:
+    enabled: true
+    reason: "Changes code or policy outside apps/, not just app configuration"
+  app_file_removed:
+    enabled: true
+    reason: "An app config was deleted or renamed"
+  non_yaml_in_apps:
+    enabled: true
+    reason: "A non-YAML file was added under apps/"
+  invalid_config:
+    enabled: true
+    reason: "App config fails validation"
+  approval_changed:
+    enabled: true
+    reason: "An approval block was added, changed or removed"
+  roles_changed:
+    enabled: true
+    reason: "Roles changed on an existing app"
+  sensitive_visibility_changed:
+    enabled: true
+    reason: "show_sensitive_to changed"
+  high_risk_action:
+    enabled: true
+    reason: "App uses an action declared risk: high in code"
