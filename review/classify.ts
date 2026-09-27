@@ -125,14 +125,34 @@ export function classify(changes: ChangedFile[], rules: Rules): Classification {
 }
 
 function git(args: string[]): string {
-  return execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  // core.quotepath=false keeps non-ASCII paths unescaped and unquoted.
+  return execFileSync("git", ["-c", "core.quotepath=false", ...args], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
 }
 
-/** `git status --porcelain` lines are `XY<space><path>`, where X may be a space. */
-export function porcelainPath(line: string): string {
+/**
+ * `git status --porcelain` lines are `XY<space><path>`, where X may be a space
+ * and a rename is `old -> new`. Both sides of a rename are returned: the old
+ * path is a deletion, and deleting an app config is never self-serve.
+ */
+export function porcelainPaths(line: string): string[] {
   const rest = line.slice(3);
   const arrow = rest.indexOf(" -> ");
-  return arrow === -1 ? rest : rest.slice(arrow + 4);
+  return arrow === -1
+    ? [unquote(rest)]
+    : [unquote(rest.slice(0, arrow)), unquote(rest.slice(arrow + 4))];
+}
+
+function unquote(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('"') || !trimmed.endsWith('"')) return trimmed;
+  try {
+    return JSON.parse(trimmed) as string;
+  } catch {
+    return trimmed.slice(1, -1);
+  }
 }
 
 function showFile(ref: string, file: string): string | undefined {
@@ -161,17 +181,23 @@ export function changesAgainst(base: string): ChangedFile[] {
     : [];
 
   // Uncommitted work counts too, so the classifier can run before committing.
+  // The working tree wins over the committed version of the same file.
   const dirty = git(["status", "--porcelain"]);
   for (const line of dirty.split("\n").filter((l) => l.length > 3)) {
-    const file = porcelainPath(line);
-    if (files.some((f) => f.path === file)) continue;
-    const exists = fs.existsSync(path.join(process.cwd(), file));
-    files.push({
-      status: exists ? (showFile(mergeBase, file) ? "M" : "A") : "D",
-      path: file,
-      base: showFile(mergeBase, file),
-      head: exists ? fs.readFileSync(path.join(process.cwd(), file), "utf8") : undefined,
-    });
+    for (const file of porcelainPaths(line)) {
+      const onDisk = path.join(process.cwd(), file);
+      const exists = fs.existsSync(onDisk);
+      const baseSource = showFile(mergeBase, file);
+      const change: ChangedFile = {
+        status: exists ? (baseSource ? "M" : "A") : "D",
+        path: file,
+        base: baseSource,
+        head: exists ? fs.readFileSync(onDisk, "utf8") : undefined,
+      };
+      const existing = files.findIndex((f) => f.path === file);
+      if (existing === -1) files.push(change);
+      else files[existing] = change;
+    }
   }
 
   return files;
