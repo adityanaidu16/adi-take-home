@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, loadRules, type ChangedFile } from "@/review/classify";
+import { classify, loadRules, porcelainPaths, type ChangedFile } from "@/review/classify";
 
 const rules = loadRules();
 
@@ -114,6 +114,25 @@ describe("review classifier", () => {
     const result = classify([added("apps/broken.yaml", "name: Broken\nowner: x\n")], rules);
 
     expect(result.reasons.join(" ")).toMatch(/fails validation/);
+  });
+
+  it("reads porcelain paths whatever the status letters are", () => {
+    expect(porcelainPaths(" M apps/feature-flags.yaml")).toEqual(["apps/feature-flags.yaml"]);
+    expect(porcelainPaths("?? apps/feature-flags.yaml")).toEqual(["apps/feature-flags.yaml"]);
+    expect(porcelainPaths("M  apps/feature-flags.yaml")).toEqual(["apps/feature-flags.yaml"]);
+  });
+
+  it("reports both sides of a rename, so the old app counts as removed", () => {
+    expect(porcelainPaths("R  apps/old.yaml -> apps/new.yaml")).toEqual([
+      "apps/old.yaml",
+      "apps/new.yaml",
+    ]);
+  });
+
+  it("unquotes paths git quotes", () => {
+    expect(porcelainPaths('?? "apps/refund exceptions.yaml"')).toEqual([
+      "apps/refund exceptions.yaml",
+    ]);
   });
 
   it("ignores formatting-only changes", () => {
