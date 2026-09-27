@@ -9,3 +9,6 @@ view:
 actions:
   - use: toggle_flag
     allowed_roles: [admin]
+    approval:
+      when: { field: environment, equals: production }
+      approver_roles: [admin]
