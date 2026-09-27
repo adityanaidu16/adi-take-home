@@ -29,13 +29,13 @@ import {
   TableRegular,
 } from "@fluentui/react-icons";
 import { usePathname } from "next/navigation";
+import { chrome } from "./theme";
 import { useState } from "react";
 
 export type NavApp = { slug: string; name: string; visible: boolean };
 
 export type ShellUser = { name: string; username: string; groups: string[] } | null;
 
-const BRAND = "#742774";
 
 const useStyles = makeStyles({
   page: {
@@ -48,25 +48,29 @@ const useStyles = makeStyles({
     display: "flex",
     alignItems: "center",
     ...shorthands.gap("8px"),
-    backgroundColor: BRAND,
-    color: "#fff",
-    height: "48px",
+    backgroundColor: chrome.bar,
+    color: chrome.barText,
+    height: "52px",
     ...shorthands.padding("0", "12px"),
+    ...shorthands.borderBottom("3px", "solid", chrome.accent),
     flexShrink: 0,
   },
   headerButton: {
-    color: "#fff",
+    color: chrome.barText,
     minWidth: "32px",
-    ":hover": { color: "#fff", backgroundColor: "rgba(255,255,255,0.12)" },
-    ":hover:active": { color: "#fff", backgroundColor: "rgba(255,255,255,0.2)" },
+    ":hover": { color: chrome.barText, backgroundColor: chrome.barHover },
+    ":hover:active": { color: chrome.barText, backgroundColor: chrome.barActive },
   },
   product: {
-    color: "#fff",
+    color: chrome.barText,
     fontWeight: tokens.fontWeightSemibold,
+    letterSpacing: "0.14em",
+    textTransform: "uppercase",
+    fontSize: tokens.fontSizeBase200,
     whiteSpace: "nowrap",
   },
   appName: {
-    color: "rgba(255,255,255,0.85)",
+    color: chrome.barTextMuted,
     whiteSpace: "nowrap",
   },
   search: { maxWidth: "420px", width: "100%" },
@@ -112,7 +116,7 @@ const useStyles = makeStyles({
       bottom: "6px",
       width: "3px",
       ...shorthands.borderRadius("2px"),
-      backgroundColor: BRAND,
+      backgroundColor: chrome.accent,
     },
   },
   navItemDisabled: {
