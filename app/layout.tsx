@@ -1,59 +1,38 @@
-import { Body1, Divider, Link as FluentLink, Text } from "@fluentui/react-components";
 import type { Metadata } from "next";
+import { canView, rolesFor } from "@/kit/auth/roles";
 import { getSession } from "@/kit/auth/session";
+import { loadApps } from "@/kit/config/loader";
+import { Shell, type NavApp } from "@/kit/ui/Shell";
 import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Internal Tools Kit",
+  title: "Internal Tools",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
+  const apps: NavApp[] = loadApps().map(({ slug, config }) => ({
+    slug,
+    name: config.name,
+    visible: session ? canView(config, rolesFor(config, session)) : false,
+  }));
+
   return (
     <html lang="en">
       <body>
         <Providers>
-          <header style={{ background: "#fff" }}>
-            <div
-              style={{
-                margin: "0 auto",
-                maxWidth: 1100,
-                padding: "12px 24px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 16,
-              }}
-            >
-              <Text weight="semibold" size={400}>
-                <FluentLink as="a" href="/" appearance="subtle">
-                  Internal Tools
-                </FluentLink>
-              </Text>
-              <nav style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <FluentLink as="a" href="/approvals">
-                  Approvals
-                </FluentLink>
-                <FluentLink as="a" href="/audit">
-                  Audit log
-                </FluentLink>
-                {session ? (
-                  <>
-                    <Body1>
-                      {session.name} · {session.groups.join(", ") || "no groups"}
-                    </Body1>
-                    <FluentLink href="/api/auth/logout">Sign out</FluentLink>
-                  </>
-                ) : (
-                  <FluentLink href="/api/auth/login">Sign in</FluentLink>
-                )}
-              </nav>
-            </div>
-            <Divider />
-          </header>
-          <main style={{ margin: "0 auto", maxWidth: 1100, padding: "32px 24px" }}>{children}</main>
+          <Shell
+            apps={apps}
+            user={
+              session
+                ? { name: session.name, username: session.username, groups: session.groups }
+                : null
+            }
+          >
+            {children}
+          </Shell>
         </Providers>
       </body>
     </html>

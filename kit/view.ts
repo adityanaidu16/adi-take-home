@@ -26,6 +26,10 @@ export type AppView = {
   }[];
   isApprover: boolean;
   origin: "postgres" | "sharepoint";
+  /** Columns the data source declares sensitive, so the grid can label them. */
+  sensitiveColumns: string[];
+  /** False when this user only sees the masked form of those columns. */
+  showsSensitive: boolean;
 };
 
 /**
@@ -74,6 +78,8 @@ export async function getAppView(slug: string, session: Session): Promise<AppVie
     actions,
     isApprover,
     origin: ds.origin,
+    sensitiveColumns: config.view.columns.filter((c) => sensitive.has(c)),
+    showsSensitive: showSensitive,
   };
 }
 
