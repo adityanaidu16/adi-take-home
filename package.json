@@ -11,6 +11,7 @@
     "test": "vitest run",
     "validate": "tsx scripts/validate.ts",
     "review": "tsx review/cli.ts",
+    "approve": "tsx review/approve-cli.ts",
     "seed": "tsx prisma/seed.ts",
     "db:push": "prisma db push",
     "graph-mock": "tsx dev/graph-mock/server.ts",

@@ -126,7 +126,31 @@ changed, `roles` changed on an existing app, `show_sensitive_to` changed, or the
 app uses an action declared `risk: high`.
 
 It is deterministic — no model call — and the rules live in `review/rules.yaml`
-so the client can tune them.
+so the client can tune them. `.github/workflows/checks.yml` runs it on every
+pull request, so the verdict is a property of the change rather than a command
+someone remembers to run.
+
+### Confirming a self-serve change from chat
+
+App owners are ops staff, not engineers, and may not have GitHub accounts. A
+confirmation arriving from Slack is accepted only through:
+
+```bash
+npm run approve -- --by slack:U01MARIA --base main
+```
+
+which recomputes the classification (a chat message cannot assert its own
+verdict), refuses anything that is not `SELF-SERVE`, refuses anyone outside the
+`owner` team named in the app's YAML, and prints an approval record to attach to
+the pull request. Team membership lives in `review/owners.yaml` — outside
+`apps/`, so changing it escalates. The Slack ✅ automation that calls this is in
+`.agents/automations/slack-confirm-in-thread.md`.
+
+Be clear about what this is: a Slack reaction is an identity claim, not an
+authentication factor. The control is that only members of the owning team
+resolve to an approval and everything else is refused and logged. Teams has no
+reaction-trigger equivalent today, so on Teams the owning team approves the pull
+request on GitHub instead.
 
 ## Microsoft integration
 
@@ -203,10 +227,15 @@ This is a ~2 hour prototype. Deliberately not built:
   policies, conditional access, group overage and real throttling (429 /
   `Retry-After`) are untested.
 - Deployment. No hosting, TLS, secrets manager or CI pipeline.
-- The classifier is not enforced in GitHub. Production would run it as a
-  required status check that blocks merge on `ESCALATE` without an engineer's
-  approval.
-- No notifications (Teams/Slack), no config previews before merge.
+- The classifier runs in CI but is not yet a *required* status check, and
+  nothing blocks merging an `ESCALATE` change without an engineer's approval.
+  Both are branch-protection settings on the repository.
+- `review/owners.yaml` is hand-maintained. It should be generated from the same
+  Entra groups that drive app roles.
+- The Slack confirmation automation is written but unverified: the docs do not
+  say whether a reaction trigger exposes the reactor's identity to the session,
+  and the prompt fails closed if it does not.
+- No config previews before merge.
 - Reads of sensitive fields are not audited, only actions.
 - Audit protection is application-level only. Production would revoke
   `UPDATE`/`DELETE` on the audit table from the application role.
