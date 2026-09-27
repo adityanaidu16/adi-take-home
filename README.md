@@ -232,6 +232,10 @@ This is a ~2 hour prototype. Deliberately not built:
   Both are branch-protection settings on the repository.
 - `review/owners.yaml` is hand-maintained. It should be generated from the same
   Entra groups that drive app roles.
+- A *new* app's `owner` is self-declared: confirmation checks the confirmer is a
+  real member of the team the file names, but nothing assigns that team
+  independently. (Reassigning an *existing* app's owner is refused.) Closing
+  this needs an app-to-team registry maintained outside the pull request.
 - The Slack confirmation automation is written but unverified: the docs do not
   say whether a reaction trigger exposes the reactor's identity to the session,
   and the prompt fails closed if it does not.
