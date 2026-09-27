@@ -1,0 +1,11 @@
+name: Feature Flags
+owner: platform-eng
+datasource: feature_flags
+roles:
+  admin: [platform-eng]
+view:
+  columns: [key, description, environment, enabled]
+  visible_to: [admin]
+actions:
+  - use: toggle_flag
+    allowed_roles: [admin]
