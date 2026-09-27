@@ -38,25 +38,25 @@ export default async function AuditPage() {
         <div>
           <Text size={200}>Append-only. Newest first.</Text>
         </div>
-        <Card style={{ marginTop: 16, padding: 0 }}>
-          <Table size="small" aria-label="Audit log">
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>when</TableHeaderCell>
-                <TableHeaderCell>actor</TableHeaderCell>
-                <TableHeaderCell>app</TableHeaderCell>
-                <TableHeaderCell>action</TableHeaderCell>
-                <TableHeaderCell>record</TableHeaderCell>
+        <Card style={{ marginTop: 16, padding: 0, overflowX: "auto" }}>
+          <Table as="table" size="small" aria-label="Audit log">
+            <TableHeader as="thead">
+              <TableRow as="tr">
+                <TableHeaderCell as="th">when</TableHeaderCell>
+                <TableHeaderCell as="th">actor</TableHeaderCell>
+                <TableHeaderCell as="th">app</TableHeaderCell>
+                <TableHeaderCell as="th">action</TableHeaderCell>
+                <TableHeaderCell as="th">record</TableHeaderCell>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody as="tbody">
               {entries.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell>{entry.createdAt.toISOString()}</TableCell>
-                  <TableCell>{entry.actor}</TableCell>
-                  <TableCell>{entry.app}</TableCell>
-                  <TableCell>{entry.action}</TableCell>
-                  <TableCell>{entry.recordId}</TableCell>
+                <TableRow as="tr" key={entry.id}>
+                  <TableCell as="td" style={{ whiteSpace: "nowrap" }}>{entry.createdAt.toISOString()}</TableCell>
+                  <TableCell as="td" style={{ whiteSpace: "nowrap" }}>{entry.actor}</TableCell>
+                  <TableCell as="td" style={{ whiteSpace: "nowrap" }}>{entry.app}</TableCell>
+                  <TableCell as="td" style={{ whiteSpace: "nowrap" }}>{entry.action}</TableCell>
+                  <TableCell as="td" style={{ whiteSpace: "nowrap" }}>{entry.recordId}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -73,25 +73,25 @@ export default async function AuditPage() {
             One row per executed refund. The approval request id is the idempotency key.
           </Text>
         </div>
-        <Card style={{ marginTop: 16, padding: 0 }}>
-          <Table size="small" aria-label="Mock payment ledger">
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>when</TableHeaderCell>
-                <TableHeaderCell>amount</TableHeaderCell>
-                <TableHeaderCell>refund request</TableHeaderCell>
-                <TableHeaderCell>approval request id</TableHeaderCell>
+        <Card style={{ marginTop: 16, padding: 0, overflowX: "auto" }}>
+          <Table as="table" size="small" aria-label="Mock payment ledger">
+            <TableHeader as="thead">
+              <TableRow as="tr">
+                <TableHeaderCell as="th">when</TableHeaderCell>
+                <TableHeaderCell as="th">amount</TableHeaderCell>
+                <TableHeaderCell as="th">refund request</TableHeaderCell>
+                <TableHeaderCell as="th">approval request id</TableHeaderCell>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody as="tbody">
               {ledger.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.createdAt.toISOString()}</TableCell>
-                  <TableCell>
+                <TableRow as="tr" key={row.id}>
+                  <TableCell as="td" style={{ whiteSpace: "nowrap" }}>{row.createdAt.toISOString()}</TableCell>
+                  <TableCell as="td" style={{ whiteSpace: "nowrap" }}>
                     {row.amount} {row.currency}
                   </TableCell>
-                  <TableCell>{row.recordId}</TableCell>
-                  <TableCell>{row.approvalRequestId}</TableCell>
+                  <TableCell as="td" style={{ whiteSpace: "nowrap" }}>{row.recordId}</TableCell>
+                  <TableCell as="td" style={{ whiteSpace: "nowrap" }}>{row.approvalRequestId}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

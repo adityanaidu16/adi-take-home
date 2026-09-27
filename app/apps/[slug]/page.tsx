@@ -1,16 +1,6 @@
-import {
-  Card,
-  Link as FluentLink,
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
-  Text,
-} from "@fluentui/react-components";
+import { Card, Link as FluentLink, Text } from "@fluentui/react-components";
 import { getSession } from "@/kit/auth/session";
-import { ActionButton } from "@/kit/ui/ActionButton";
+import { AppTable } from "@/kit/ui/AppTable";
 import { AccessDenied, getAppView } from "@/kit/view";
 import { runAction } from "./actions";
 
@@ -60,42 +50,21 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
         </p>
       )}
 
-      <Card style={{ marginTop: 16, padding: 0 }}>
-        <Table size="small" aria-label={view.config.name}>
-          <TableHeader>
-            <TableRow>
-              {view.columns.map((c) => (
-                <TableHeaderCell key={c}>{c}</TableHeaderCell>
-              ))}
-              {view.actions.length > 0 && <TableHeaderCell />}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {view.rows.map((row) => (
-              <TableRow key={String(row.id)}>
-                {view.columns.map((c) => (
-                  <TableCell key={c}>{String(row[c])}</TableCell>
-                ))}
-                {view.actions.length > 0 && (
-                  <TableCell>
-                    <span style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {view.actions.map((action) => (
-                        <ActionButton
-                          key={action.name}
-                          label={action.label}
-                          risk={action.risk}
-                          disabled={action.appliesTo ? !action.appliesTo(row) : false}
-                          run={runAction.bind(null, view.slug, action.name, String(row.id))}
-                        />
-                      ))}
-                    </span>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <AppTable
+        label={view.config.name}
+        columns={view.columns}
+        rows={view.rows.map((row) => ({
+          id: String(row.id),
+          cells: view.columns.map((c) => String(row[c])),
+          actions: view.actions.map((action) => ({
+            name: action.name,
+            label: action.label,
+            risk: action.risk,
+            disabled: action.appliesTo ? !action.appliesTo(row) : false,
+            run: runAction.bind(null, view.slug, action.name, String(row.id)),
+          })),
+        }))}
+      />
       {view.rows.length === 0 && <Text>No records.</Text>}
     </div>
   );

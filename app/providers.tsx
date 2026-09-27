@@ -9,7 +9,7 @@ import {
   webLightTheme,
 } from "@fluentui/react-components";
 import { useServerInsertedHTML } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 /**
  * Fluent UI v9 (the design language behind Power Apps' modern controls) styles
@@ -18,7 +18,15 @@ import { useState } from "react";
  */
 export function Providers({ children }: { children: React.ReactNode }) {
   const [renderer] = useState(() => createDOMRenderer());
-  useServerInsertedHTML(() => renderToStyleElements(renderer));
+  const flushed = useRef(false);
+
+  // Next.js calls this for every inserted chunk; flushing more than once emits
+  // duplicate rules that the client then complains about while rehydrating.
+  useServerInsertedHTML(() => {
+    if (flushed.current) return;
+    flushed.current = true;
+    return <>{renderToStyleElements(renderer)}</>;
+  });
 
   return (
     <RendererProvider renderer={renderer}>
