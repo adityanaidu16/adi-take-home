@@ -77,6 +77,9 @@ export function RequestsList({ items }: { items: RequestItem[] }) {
               Raised {item.createdAt}
               {item.decidedBy ? ` · decided by ${item.decidedBy}` : ""}
             </Caption1>
+            <div>
+              <Caption1 italic>Record as it was when you raised the request</Caption1>
+            </div>
             <div className={styles.fields}>
               {item.fields.map((field) => (
                 <div key={field.label}>
