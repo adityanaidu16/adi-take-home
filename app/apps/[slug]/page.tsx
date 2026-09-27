@@ -54,7 +54,7 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
         subtitle={`Owner: ${view.config.owner} · Your roles: ${view.roles.join(", ") || "none"}`}
         badges={[
           { text: view.origin === "sharepoint" ? "SharePoint list" : "Postgres", tone: "informative" },
-          ...(view.showsSensitive
+          ...(view.showsSensitive || view.sensitiveColumns.length === 0
             ? []
             : [{ text: "Sensitive fields masked", tone: "warning" as const }]),
         ]}
