@@ -16,6 +16,8 @@ import { SignInPrompt } from "@/kit/ui/SignInPrompt";
 
 export const dynamic = "force-dynamic";
 
+const badgeStyle = { whiteSpace: "nowrap", flexShrink: 0 } as const;
+
 export default async function Home() {
   const session = await getSession();
   if (!session) return <SignInPrompt what="the apps you have access to" />;
@@ -61,11 +63,11 @@ export default async function Home() {
               description={<Caption1>Owner: {config.owner}</Caption1>}
               action={
                 visible ? (
-                  <Badge appearance="tint" color="success">
+                  <Badge appearance="tint" color="success" style={badgeStyle}>
                     Open
                   </Badge>
                 ) : (
-                  <Badge appearance="tint" color="informative">
+                  <Badge appearance="tint" color="informative" style={badgeStyle}>
                     No access
                   </Badge>
                 )
