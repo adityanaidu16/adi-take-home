@@ -1,0 +1,7 @@
+{
+  "sam": ["refunds-analysts"],
+  "priya": ["refunds-approvers"],
+  "maria": ["ops-leads"],
+  "jordan": ["platform-eng"],
+  "alex": ["platform-eng"]
+}

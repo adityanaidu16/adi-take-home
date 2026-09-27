@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { resolveGroups } from "@/kit/auth/directory";
 import { getOidcClient, redirectUri } from "@/kit/auth/oidc";
 import { SESSION_COOKIE, encodeSession, type Session } from "@/kit/auth/session";
 
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     subject: String(claims.oid ?? claims.sub),
     username: String(claims.preferred_username ?? claims.sub).split("@")[0],
     name: String(claims.name ?? claims.sub),
-    groups: Array.isArray(claims.groups) ? (claims.groups as string[]) : [],
+    groups: resolveGroups(claims),
   };
 
   const response = NextResponse.redirect(new URL("/", request.url));

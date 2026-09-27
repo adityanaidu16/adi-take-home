@@ -112,15 +112,23 @@ change.
 **Sign-in** is standard OIDC authorization code flow via `openid-client`,
 configured by `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`. Locally
 that issuer is `mock-oauth2-server` in `docker-compose.yml`, which issues
-Entra-shaped tokens (`oid`, `tid`, `preferred_username`, `name`, `groups`).
+Entra-shaped tokens (`oid`, `tid`, `preferred_username`, `name`).
 
 *Switching to Entra ID:* create an app registration, set the three variables to
 the tenant's. One real difference to plan for: Entra puts group **object IDs**
-(GUIDs) in the `groups` claim, not names, and above ~200 groups it replaces the
-claim with an overage pointer to Graph. For this platform we would use **Entra
-app roles** (the `roles` claim) rather than raw groups: the app declares
-`analyst`/`approver`, an admin assigns groups to them in Entra, the claim stays
-small and stable, and the YAML stops depending on GUIDs.
+(GUIDs) in the `groups` claim, not names, and above ~200 groups it drops the
+claim entirely and points at Graph instead ("group overage"). For this platform
+we would use **Entra app roles** (the `roles` claim) rather than raw groups: the
+app declares `analyst`/`approver`, an admin assigns groups to them in Entra, the
+claim stays small and stable, and the YAML stops depending on GUIDs.
+
+Because a token can arrive with no groups claim, group membership is resolved
+in `kit/auth/directory.ts`: use the claim when it is there, otherwise ask the
+directory. In production that fallback is `GET /v1.0/me/memberOf`. Locally it
+reads `DIRECTORY_FILE` (`dev/directory.json`), which is also how the mock
+identity provider's usernames get their groups — it cannot attach per-user
+claims to a standard authorization-code exchange, since it matches only on the
+token request's own form parameters.
 
 **SharePoint data** goes through `kit/blocks/graph`: app-only client credentials
 with a cached token, `GET /v1.0/sites/{siteId}/lists/{listId}/items?expand=fields`
