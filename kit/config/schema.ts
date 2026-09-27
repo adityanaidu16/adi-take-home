@@ -16,6 +16,18 @@ export const appConfigSchema = z
         columns: z.array(z.string()).min(1),
         visible_to: z.array(z.string()).min(1),
         show_sensitive_to: z.array(z.string()).default([]),
+        /**
+         * Optional dashboard strip above the grid. Declarative on purpose:
+         * group by a field, optionally total a numeric one. No expressions.
+         */
+        summary: z
+          .object({
+            group_by: z.string(),
+            measure: z.string().optional(),
+            label: z.string().optional(),
+          })
+          .strict()
+          .optional(),
       })
       .strict(),
     actions: z

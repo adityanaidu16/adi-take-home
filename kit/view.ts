@@ -1,6 +1,7 @@
 import { getAction, getDataSource, type Row } from "@/kit/blocks";
 import { canSeeSensitive, canView, rolesFor } from "@/kit/auth/roles";
 import type { Session } from "@/kit/auth/session";
+import { audit } from "@/kit/audit/log";
 import { loadApp } from "@/kit/config/loader";
 import type { AppConfig } from "@/kit/config/schema";
 
@@ -30,7 +31,33 @@ export type AppView = {
   sensitiveColumns: string[];
   /** False when this user only sees the masked form of those columns. */
   showsSensitive: boolean;
+  /** Optional declarative dashboard strip, computed from the same rows. */
+  summary: SummaryView | null;
 };
+
+export type SummaryView = {
+  label: string;
+  measure: string | null;
+  groups: { key: string; value: number }[];
+};
+
+function summarise(config: AppConfig, rows: Row[]): SummaryView | null {
+  const spec = config.view.summary;
+  if (!spec) return null;
+
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const key = String(row[spec.group_by] ?? "");
+    const amount = spec.measure ? Number(row[spec.measure]) : 1;
+    totals.set(key, (totals.get(key) ?? 0) + (Number.isFinite(amount) ? amount : 0));
+  }
+
+  return {
+    label: spec.label ?? (spec.measure ? `${spec.measure} by ${spec.group_by}` : `by ${spec.group_by}`),
+    measure: spec.measure ?? null,
+    groups: Array.from(totals, ([key, value]) => ({ key, value })).sort((a, b) => b.value - a.value),
+  };
+}
 
 /**
  * The single read path. Authorization and masking happen here, on the server,
@@ -80,7 +107,33 @@ export async function getAppView(slug: string, session: Session): Promise<AppVie
     origin: ds.origin,
     sensitiveColumns: config.view.columns.filter((c) => sensitive.has(c)),
     showsSensitive: showSensitive,
+    summary: summarise(config, rows),
   };
+}
+
+function csvCell(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+/**
+ * Export goes through the same authorized, masked view as the screen, so an
+ * export can never contain more than the user can already read — and it is
+ * audited, because a spreadsheet leaving the building is the event you most
+ * want a record of.
+ */
+export async function exportAppCsv(slug: string, session: Session): Promise<string> {
+  const view = await getAppView(slug, session);
+  const lines = [view.columns.map(csvCell).join(",")];
+  for (const row of view.rows) {
+    lines.push(view.columns.map((c) => csvCell(String(row[c] ?? ""))).join(","));
+  }
+  await audit({
+    actor: session.username,
+    app: slug,
+    action: "view.exported",
+    detail: { rows: view.rows.length, columns: view.columns, sensitiveMasked: !view.showsSensitive },
+  });
+  return lines.join("\n");
 }
 
 /** Union of the code-level minimum approvers and any approvers added by config. */

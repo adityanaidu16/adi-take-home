@@ -38,7 +38,7 @@ import {
 } from "@fluentui/react-icons";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import type { ActionResult } from "@/app/apps/[slug]/actions";
+import type { ActionResult, ExportResult } from "@/app/apps/[slug]/actions";
 import { ActionButton } from "./ActionButton";
 
 export type GridAction = {
@@ -53,6 +53,14 @@ export type GridRow = {
   id: string;
   cells: Record<string, string>;
   actions: GridAction[];
+  /** Set when a request against this record is already waiting on an approver. */
+  pendingBy?: string;
+};
+
+export type GridSummary = {
+  label: string;
+  measure: string | null;
+  groups: { key: string; value: number }[];
 };
 
 const useStyles = makeStyles({
@@ -69,6 +77,25 @@ const useStyles = makeStyles({
   row: { cursor: "pointer" },
   empty: { ...shorthands.padding("24px") },
   notice: { marginBottom: "12px" },
+  summary: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    ...shorthands.gap("12px"),
+    marginBottom: "12px",
+  },
+  tile: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.border("1px", "solid", tokens.colorNeutralStroke2),
+    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    ...shorthands.padding("12px"),
+    boxShadow: tokens.shadow2,
+  },
+  bar: {
+    height: "6px",
+    backgroundColor: tokens.colorBrandBackground,
+    ...shorthands.borderRadius(tokens.borderRadiusSmall),
+    marginTop: "6px",
+  },
   detailField: { marginBottom: "12px" },
   detailValue: { wordBreak: "break-all" },
   drawerActions: { display: "flex", flexWrap: "wrap", ...shorthands.gap("8px"), marginTop: "16px" },
@@ -85,17 +112,41 @@ export function AppGrid({
   rows,
   sensitiveColumns,
   masked,
+  summary,
+  exportCsv,
 }: {
   columns: string[];
   rows: GridRow[];
   sensitiveColumns: string[];
   masked: boolean;
+  summary?: GridSummary | null;
+  exportCsv?: () => Promise<ExportResult>;
 }) {
   const styles = useStyles();
   const router = useRouter();
   const [notice, setNotice] = useState<ActionResult | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [refreshing, startRefresh] = useTransition();
+  const [exporting, setExporting] = useState(false);
+
+  async function download() {
+    if (!exportCsv) return;
+    setExporting(true);
+    try {
+      const result = await exportCsv();
+      setNotice({ ok: result.ok, message: result.message });
+      if (result.ok && result.csv) {
+        const url = URL.createObjectURL(new Blob([result.csv], { type: "text/csv" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = result.filename ?? "export.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const selected = rows.find((row) => row.id === selectedId) ?? null;
   const sensitive = new Set(sensitiveColumns);
@@ -125,9 +176,14 @@ export function AppGrid({
       renderCell: (row) => (
         <TableCellLayout>
           <span
-            style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
+            style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}
             onClick={(event) => event.stopPropagation()}
           >
+            {row.pendingBy && (
+              <Badge appearance="tint" color="warning">
+                Awaiting approval
+              </Badge>
+            )}
             {row.actions.map((action) => (
               <ActionButton
                 key={action.name}
@@ -147,6 +203,27 @@ export function AppGrid({
   return (
     <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
       <div style={{ flexGrow: 1, minWidth: 0 }}>
+        {summary && summary.groups.length > 0 && (
+          <div className={styles.summary}>
+            {summary.groups.map((group) => {
+              const largest = Math.max(...summary.groups.map((g) => g.value), 1);
+              return (
+                <div key={group.key} className={styles.tile}>
+                  <Caption1>{group.key.replace(/_/g, " ")}</Caption1>
+                  <div>
+                    <Subtitle2>{group.value.toLocaleString()}</Subtitle2>
+                  </div>
+                  <div
+                    className={styles.bar}
+                    style={{ width: `${Math.round((group.value / largest) * 100)}%` }}
+                  />
+                  <Caption1>{summary.label}</Caption1>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {notice && (
           <MessageBar
             className={styles.notice}
@@ -173,8 +250,12 @@ export function AppGrid({
             <ToolbarButton icon={<FilterRegular />} disabled>
               Filter
             </ToolbarButton>
-            <ToolbarButton icon={<DocumentTableRegular />} disabled>
-              Export to Excel
+            <ToolbarButton
+              icon={<DocumentTableRegular />}
+              disabled={!exportCsv || exporting}
+              onClick={download}
+            >
+              {exporting ? "Exporting…" : "Export CSV"}
             </ToolbarButton>
           </Toolbar>
 

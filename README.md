@@ -95,6 +95,27 @@ dev/               mock identity provider config, mock Microsoft Graph
 - **Append-only audit.** Request, approval and execution are separate rows.
   Nothing in the kit updates or deletes audit rows.
 
+### What config buys you, on top of a table
+
+Three things the grid page gets for free, all on the same authorized, masked
+read path:
+
+- **Declarative summary.** `view.summary: { group_by, measure }` renders a
+  dashboard strip above the grid, totalled from the rows the user is already
+  allowed to see. The loader rejects a summary over a sensitive field, over a
+  non-numeric measure, or over a field the view does not list — an aggregate
+  is data, so it gets the same treatment as a column.
+- **Audited export.** Export produces the CSV server-side from `getAppView`,
+  so it can never contain more than the screen does (an analyst's export has
+  `•••• 6819` where the IBAN would be), and every export writes a
+  `view.exported` audit row. Exports are the quiet data-leak path in most
+  internal tools; here it is instrumented by default.
+- **My requests.** A requester cannot approve, and so could not previously see
+  that their request existed — the nudge toward raising it twice. `/my-requests`
+  shows their own requests and outcomes, masked with their own roles, with no
+  approve control anywhere on the page. Records with a request in flight are
+  badged "Awaiting approval" in the grid.
+
 ### Self-serve vs escalate
 
 `npm run review -- --base main` parses the YAML on both sides of the branch and

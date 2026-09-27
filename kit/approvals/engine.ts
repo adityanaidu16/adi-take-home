@@ -210,3 +210,25 @@ export async function pendingRequestsFor(session: Session) {
 
   return visible.filter((_, i) => live[i]);
 }
+
+/**
+ * Requests this user raised, whatever their outcome. A requester cannot
+ * approve, so without this they have no way to see that their request exists —
+ * which is how duplicate requests get raised against the same record.
+ */
+export async function requestsRaisedBy(session: Session, take = 25) {
+  return prisma.approvalRequest.findMany({
+    where: { requestedBy: session.username },
+    orderBy: { createdAt: "desc" },
+    take,
+  });
+}
+
+/** Record ids on this app with a request still waiting on an approver. */
+export async function pendingRecordIds(slug: string): Promise<Map<string, string>> {
+  const requests = await prisma.approvalRequest.findMany({
+    where: { app: slug, status: "pending" },
+    select: { recordId: true, requestedBy: true },
+  });
+  return new Map(requests.map((r) => [r.recordId, r.requestedBy]));
+}

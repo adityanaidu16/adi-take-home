@@ -22,6 +22,7 @@ import {
   CheckmarkCircleRegular,
   GridDotsRegular,
   HistoryRegular,
+  DocumentBulletListRegular,
   HomeRegular,
   NavigationRegular,
   SettingsRegular,
@@ -230,6 +231,12 @@ export function Shell({
               ))}
               <Divider />
               <MenuItem
+                icon={<DocumentBulletListRegular />}
+                onClick={() => window.location.assign("/my-requests")}
+              >
+                My requests
+              </MenuItem>
+              <MenuItem
                 icon={<CheckmarkCircleRegular />}
                 onClick={() => window.location.assign("/approvals")}
               >
@@ -322,6 +329,13 @@ export function Shell({
             />
           ))}
           {!collapsed && <Caption1 className={styles.navGroup}>Governance</Caption1>}
+          <NavItem
+            href="/my-requests"
+            icon={<DocumentBulletListRegular />}
+            label="My requests"
+            active={pathname === "/my-requests"}
+            collapsed={collapsed}
+          />
           <NavItem
             href="/approvals"
             icon={<CheckmarkCircleRegular />}

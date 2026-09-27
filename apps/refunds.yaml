@@ -8,6 +8,10 @@ view:
   columns: [customer_name, amount, currency, reason, status, bank_account]
   visible_to: [analyst, approver]
   show_sensitive_to: [approver]
+  summary:
+    group_by: status
+    measure: amount
+    label: total refund value
 actions:
   - use: issue_refund
     allowed_roles: [analyst]

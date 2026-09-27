@@ -4,7 +4,8 @@ import { AppGrid, type GridRow } from "@/kit/ui/AppGrid";
 import { PageHeader } from "@/kit/ui/PageHeader";
 import { SignInPrompt } from "@/kit/ui/SignInPrompt";
 import { AccessDenied, getAppView } from "@/kit/view";
-import { runAction } from "./actions";
+import { pendingRecordIds } from "@/kit/approvals/engine";
+import { exportCsv, runAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,12 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
     );
   }
 
+  const pending = await pendingRecordIds(view.slug);
+
   const rows: GridRow[] = view.rows.map((row) => ({
     id: String(row.id),
     cells: Object.fromEntries(view.columns.map((c) => [c, String(row[c])])),
+    pendingBy: pending.get(String(row.id)),
     actions: view.actions.map((action) => ({
       name: action.name,
       label: action.label,
@@ -60,6 +64,8 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
         rows={rows}
         sensitiveColumns={view.sensitiveColumns}
         masked={!view.showsSensitive}
+        summary={view.summary}
+        exportCsv={exportCsv.bind(null, view.slug)}
       />
     </>
   );

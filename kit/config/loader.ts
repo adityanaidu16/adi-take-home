@@ -36,6 +36,31 @@ export function parseAppConfig(source: string, label: string): AppConfig {
     }
   }
 
+  const summary = config.view.summary;
+  if (summary) {
+    // A summary is an aggregate of the data, so it gets the same treatment as
+    // a column: the field must exist, and a sensitive field can never be
+    // grouped or totalled — that would leak through the aggregate.
+    const check = (name: string, where: string) => {
+      const field = ds.fields.find((f) => f.name === name);
+      if (!field) throw new Error(`${label}: unknown field "${name}" in ${where}`);
+      if (!config.view.columns.includes(name)) {
+        throw new Error(`${label}: "${name}" in ${where} is not one of view.columns`);
+      }
+      if (field.sensitive) {
+        throw new Error(`${label}: "${name}" is sensitive and cannot be used in ${where}`);
+      }
+      return field;
+    };
+    check(summary.group_by, "view.summary.group_by");
+    if (summary.measure) {
+      const measure = check(summary.measure, "view.summary.measure");
+      if (measure.type !== "number") {
+        throw new Error(`${label}: view.summary.measure "${summary.measure}" is not a number`);
+      }
+    }
+  }
+
   const roleNames = new Set(Object.keys(config.roles));
   const checkRoles = (roles: string[], where: string) => {
     for (const role of roles) {
