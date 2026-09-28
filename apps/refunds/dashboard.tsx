@@ -144,7 +144,10 @@ export default function RefundsDashboard({ app }: { app: string }) {
               {rows.rows.map((row) => (
                 <TableRow key={row.id}>
                   {rows.columns.map((column) => (
-                    <TableCell key={column} style={{ overflow: "visible", whiteSpace: "nowrap" }}>
+                    <TableCell
+                      key={column}
+                      style={{ overflow: "visible", whiteSpace: "nowrap", paddingRight: 16 }}
+                    >
                       {String(row[column] ?? "")}
                     </TableCell>
                   ))}
