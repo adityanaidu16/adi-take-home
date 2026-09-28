@@ -11,7 +11,10 @@ rules:
     reason: "An app config was deleted or renamed"
   non_yaml_in_apps:
     enabled: true
-    reason: "A non-YAML file was added under apps/"
+    reason: "A non-YAML file was added under apps/ that is not a dashboard"
+  dashboard_left_sandbox:
+    enabled: true
+    reason: "A dashboard breaks the apps/ sandbox: it reaches data or the server directly"
   invalid_config:
     enabled: true
     reason: "App config fails validation"

@@ -2,10 +2,13 @@ import { MessageBar, MessageBarBody, MessageBarTitle } from "@fluentui/react-com
 import { getSession } from "@/kit/auth/session";
 import { AppGrid, type GridRow } from "@/kit/ui/AppGrid";
 import { PageHeader } from "@/kit/ui/PageHeader";
+import { ExportCsvButton } from "@/kit/ui/ExportCsvButton";
 import { SignInPrompt } from "@/kit/ui/SignInPrompt";
 import { AccessDenied, getAppView } from "@/kit/view";
 import { pendingRecordIds } from "@/kit/approvals/engine";
-import { exportCsv, runAction } from "./actions";
+import { hasDashboard } from "@/kit/config/loader";
+import { exportCsv, runAppAction } from "./actions";
+import { AppDashboard } from "./dashboard-host";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +34,10 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
     );
   }
 
-  const pending = await pendingRecordIds(view.slug);
+  const dashboard = hasDashboard(params.slug);
+  const pending = dashboard ? new Map<string, string>() : await pendingRecordIds(view.slug);
 
-  const rows: GridRow[] = view.rows.map((row) => ({
+  const rows: GridRow[] = dashboard ? [] : view.rows.map((row) => ({
     id: String(row.id),
     cells: Object.fromEntries(view.columns.map((c) => [c, String(row[c])])),
     pendingBy: pending.get(String(row.id)),
@@ -42,7 +46,7 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
       label: action.label,
       risk: action.risk,
       disabled: action.appliesTo ? !action.appliesTo(row) : false,
-      run: runAction.bind(null, view.slug, action.name, String(row.id)),
+      run: runAppAction.bind(null, view.slug, action.name, String(row.id)),
     })),
   }));
 
@@ -59,14 +63,21 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
             : [{ text: "Sensitive fields masked", tone: "warning" as const }]),
         ]}
       />
-      <AppGrid
-        columns={view.columns}
-        rows={rows}
-        sensitiveColumns={view.sensitiveColumns}
-        masked={!view.showsSensitive}
-        summary={view.summary}
-        exportCsv={exportCsv.bind(null, view.slug)}
-      />
+      {dashboard ? (
+        <>
+          <ExportCsvButton exportCsv={exportCsv.bind(null, view.slug)} />
+          <AppDashboard slug={params.slug} />
+        </>
+      ) : (
+        <AppGrid
+          columns={view.columns}
+          rows={rows}
+          sensitiveColumns={view.sensitiveColumns}
+          masked={!view.showsSensitive}
+          summary={view.summary}
+          exportCsv={exportCsv.bind(null, view.slug)}
+        />
+      )}
     </>
   );
 }

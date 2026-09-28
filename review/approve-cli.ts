@@ -1,4 +1,4 @@
-import { changesAgainst } from "./classify";
+import { changesAgainst, withSandboxLint } from "./classify";
 import { approve, loadOwners, parseApprover } from "./approve";
 
 const args = process.argv.slice(2);
@@ -14,12 +14,20 @@ if (!approver) {
   process.exit(2);
 }
 
-const result = approve(changesAgainst(valueOf("--base") ?? "main"), loadOwners(), approver);
+async function main() {
+  const changes = await withSandboxLint(changesAgainst(valueOf("--base") ?? "main"));
+  const result = approve(changes, loadOwners(), approver!);
 
-if (!result.ok) {
-  console.error(`REFUSED: ${result.reason}`);
-  process.exit(1);
+  if (!result.ok) {
+    console.error(`REFUSED: ${result.reason}`);
+    process.exit(1);
+  }
+
+  console.log("CONFIRMED by the owning team. Safe to merge.");
+  console.log(JSON.stringify(result.record, null, 2));
 }
 
-console.log("CONFIRMED by the owning team. Safe to merge.");
-console.log(JSON.stringify(result.record, null, 2));
+main().catch((err: Error) => {
+  console.error(err.message);
+  process.exit(1);
+});

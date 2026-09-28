@@ -13,7 +13,12 @@ export const appConfigSchema = z
     roles: z.record(z.string(), z.array(z.string()).min(1)),
     view: z
       .object({
-        columns: z.array(z.string()).min(1),
+        /**
+         * Presentation default, not governance: when a dashboard renders the app
+         * these are only the columns its table helpers fall back to. Omitted
+         * means every non-sensitive field of the data source.
+         */
+        columns: z.array(z.string()).min(1).optional(),
         visible_to: z.array(z.string()).min(1),
         show_sensitive_to: z.array(z.string()).default([]),
         /**

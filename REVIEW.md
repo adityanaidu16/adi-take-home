@@ -24,7 +24,12 @@ Check these before anything about style or structure.
    The app must work with `Sites.Selected`; flag any change that implies
    `Sites.ReadWrite.All` or another tenant-wide scope.
 7. **No `eval`, no expression strings, no dynamic imports from config.** Config
-   conditions must stay structured.
+   conditions must stay structured. One exception, `apps/<slug>/dashboard.tsx`:
+   the slug is not free text — the route reaches the import only after the app
+   config loads and the file is found, and the module is lint-sandboxed to the
+   kit client API. A static registry would satisfy the letter of this rule but
+   put a file outside `apps/` in every new dashboard, escalating changes that
+   are presentation only.
 8. **Secrets stay in environment variables.** No tenant ids, client secrets or
    real customer data in the repo, tests or fixtures.
 

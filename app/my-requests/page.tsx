@@ -2,7 +2,7 @@ import { requestsRaisedBy } from "@/kit/approvals/engine";
 import { getDataSource, type Row } from "@/kit/blocks";
 import { canSeeSensitive, rolesFor } from "@/kit/auth/roles";
 import { getSession } from "@/kit/auth/session";
-import { loadApp } from "@/kit/config/loader";
+import { loadApp, resolvedColumns } from "@/kit/config/loader";
 import { PageHeader } from "@/kit/ui/PageHeader";
 import { RequestsList, type RequestItem } from "@/kit/ui/RequestsList";
 import { SignInPrompt } from "@/kit/ui/SignInPrompt";
@@ -31,7 +31,7 @@ export default async function MyRequestsPage() {
       status: request.status,
       createdAt: request.createdAt.toISOString(),
       decidedBy: request.decidedBy,
-      fields: config.view.columns.map((column) => {
+      fields: resolvedColumns(config).map((column) => {
         const field = ds.fields.find((f) => f.name === column);
         const value = field?.sensitive && !showSensitive ? mask(payload[column]) : payload[column];
         return { label: column, value: String(value) };

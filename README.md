@@ -61,8 +61,9 @@ npm run typecheck
 ## Architecture
 
 ```
-apps/              YAML app configs — the only thing a self-serve change touches
+apps/              <name>.yaml governance, optional <name>/dashboard.tsx view
 kit/
+  client/          the only API a dashboard may use: rows, aggregates, actions
   auth/            OIDC sign-in, session cookie, group -> app role mapping
   config/          Zod schema + loader (validates config against the blocks)
   blocks/          data sources and actions, owned by engineering
@@ -116,6 +117,36 @@ read path:
   approve control anywhere on the page. Records with a request in flight are
   badged "Awaiting approval" in the grid.
 
+### Governance and presentation are different files
+
+`apps/<name>.yaml` is the governance file: data source, roles, who sees
+sensitive fields unmasked, which actions are enabled, and the approval rules.
+`view.columns` and `view.summary` are presentation defaults, not governance —
+omit them and the generic grid falls back to every non-sensitive field of the
+data source.
+
+An app may also own `apps/<name>/dashboard.tsx`. When it exists, `/apps/<name>`
+renders it instead of the generic grid — `apps/refunds/dashboard.tsx` is the
+worked example: KPI tiles, refund value by status, the largest pending refunds
+with the Issue refund button, and the full table below.
+
+A dashboard is presentation and nothing else. It may import only `react`,
+`@fluentui/react-components`, `@fluentui/react-icons`, `recharts` and
+`@/kit/client`, which is its only way to reach anything:
+
+| Kit API | What the server does |
+| --- | --- |
+| `useAppRows(app)` | The same authorized, masked read path as the grid, capped at 1,000 rows |
+| `useAppAggregate(app, { groupBy, measure })` | Totals computed server-side; refuses a sensitive field as grouping or measure, and a non-numeric measure |
+| `runAction(app, action, rowId)` | The existing action path — maker-checker, idempotency and audit unchanged |
+
+Two things keep that true rather than merely intended. `npm run validate` lints
+`apps/**` with `no-restricted-imports`, `no-restricted-globals` and a selector
+for `"use server"`, so a dashboard cannot call `fetch`, read `process`, import
+Prisma or become a server action; and the app sends a Content-Security-Policy
+of `default-src 'self'; connect-src 'self'`, so even a dashboard that got past
+the lint could not reach a third party from the browser.
+
 ### Self-serve vs escalate
 
 `npm run review -- --base main` parses the YAML on both sides of the branch and
@@ -124,7 +155,12 @@ escalates when: anything outside `apps/` changed, an app was deleted or a
 non-YAML file added under `apps/`, config fails validation, an `approval` block
 changed, `roles` changed on an existing app, `show_sensitive_to` changed, a
 *new* app puts a code-declared sensitive field on screen, or the app uses an
-action declared `risk: high`.
+action declared `risk: high`, or a dashboard fails the `apps/**` sandbox lint.
+
+A new or changed `apps/<name>/dashboard.tsx` that passes the sandbox lint is
+SELF-SERVE, noted as "presentation-only; data access via kit". That is the
+point of the sandbox: a view cannot widen access, so a view is not an
+engineering decision.
 
 The new-app rule exists because the diffing rules have nothing to compare a new
 file against: without it, the first app to show an IBAN would ship self-serve

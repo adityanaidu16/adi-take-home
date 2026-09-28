@@ -1,4 +1,68 @@
 {
   "extends": "next/core-web-vitals",
-  "ignorePatterns": ["node_modules", ".next", "app/generated"]
+  "ignorePatterns": ["node_modules", ".next", "app/generated"],
+  "overrides": [
+    {
+      "files": ["apps/**/*.ts", "apps/**/*.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@prisma/client", "next/*", "next", "@/kit/*", "!@/kit/client", "fs", "node:*"],
+                "message": "A dashboard is presentation only. Data and actions come from @/kit/client."
+              }
+            ]
+          }
+        ],
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "fetch",
+            "message": "Dashboards get data through useAppRows/useAppAggregate, not their own requests."
+          },
+          {
+            "name": "XMLHttpRequest",
+            "message": "Dashboards get data through useAppRows/useAppAggregate, not their own requests."
+          },
+          {
+            "name": "process",
+            "message": "Dashboards have no access to the server environment."
+          },
+          {
+            "name": "require",
+            "message": "Only static imports from the allowed modules."
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "ExpressionStatement > Literal[value='use server']",
+            "message": "A dashboard is presentation only; server code lives in kit/."
+          },
+          {
+            "selector": "ImportExpression",
+            "message": "Only static imports from the allowed modules."
+          },
+          {
+            "selector": "ImportDeclaration[source.value!=/^(react|@\\/kit\\/client|@fluentui\\/react-components|@fluentui\\/react-icons|recharts)$/]",
+            "message": "App dashboards may only import react, @/kit/client, @fluentui/react-components, @fluentui/react-icons and recharts. Data and actions come from @/kit/client."
+          },
+          {
+            "selector": "MemberExpression[object.name=/^(window|globalThis|global|self)$/]",
+            "message": "Dashboards reach nothing through the global object; data comes from @/kit/client."
+          },
+          {
+            "selector": "ExportNamedDeclaration[source]",
+            "message": "A re-export is an import. Only the allowed modules, imported statically."
+          },
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "A re-export is an import. Only the allowed modules, imported statically."
+          }
+        ]
+      }
+    }
+  ]
 }
