@@ -2,6 +2,7 @@ import { MessageBar, MessageBarBody, MessageBarTitle } from "@fluentui/react-com
 import { getSession } from "@/kit/auth/session";
 import { AppGrid, type GridRow } from "@/kit/ui/AppGrid";
 import { PageHeader } from "@/kit/ui/PageHeader";
+import { ExportCsvButton } from "@/kit/ui/ExportCsvButton";
 import { SignInPrompt } from "@/kit/ui/SignInPrompt";
 import { AccessDenied, getAppView } from "@/kit/view";
 import { pendingRecordIds } from "@/kit/approvals/engine";
@@ -33,9 +34,10 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
     );
   }
 
-  const pending = await pendingRecordIds(view.slug);
+  const dashboard = hasDashboard(params.slug);
+  const pending = dashboard ? new Map<string, string>() : await pendingRecordIds(view.slug);
 
-  const rows: GridRow[] = view.rows.map((row) => ({
+  const rows: GridRow[] = dashboard ? [] : view.rows.map((row) => ({
     id: String(row.id),
     cells: Object.fromEntries(view.columns.map((c) => [c, String(row[c])])),
     pendingBy: pending.get(String(row.id)),
@@ -61,8 +63,11 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
             : [{ text: "Sensitive fields masked", tone: "warning" as const }]),
         ]}
       />
-      {hasDashboard(params.slug) ? (
-        <AppDashboard slug={params.slug} />
+      {dashboard ? (
+        <>
+          <ExportCsvButton exportCsv={exportCsv.bind(null, view.slug)} />
+          <AppDashboard slug={params.slug} />
+        </>
       ) : (
         <AppGrid
           columns={view.columns}

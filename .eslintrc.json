@@ -50,8 +50,16 @@
             "message": "App dashboards may only import react, @/kit/client, @fluentui/react-components, @fluentui/react-icons and recharts. Data and actions come from @/kit/client."
           },
           {
-            "selector": "MemberExpression[object.name=/^(window|globalThis|global)$/][property.name=/^(fetch|XMLHttpRequest|process)$/]",
-            "message": "Dashboards get data through useAppRows/useAppAggregate, not their own requests."
+            "selector": "MemberExpression[object.name=/^(window|globalThis|global|self)$/]",
+            "message": "Dashboards reach nothing through the global object; data comes from @/kit/client."
+          },
+          {
+            "selector": "ExportNamedDeclaration[source]",
+            "message": "A re-export is an import. Only the allowed modules, imported statically."
+          },
+          {
+            "selector": "ExportAllDeclaration",
+            "message": "A re-export is an import. Only the allowed modules, imported statically."
           }
         ]
       }

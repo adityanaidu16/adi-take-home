@@ -163,11 +163,15 @@ export async function getAppAggregate(
   if (!canView(config, roles)) throw new AccessDenied(`No access to ${slug}`);
 
   const ds = getDataSource(config.datasource);
+  const visible = new Set(resolvedColumns(config));
   const field = (name: string, where: string) => {
     const found = ds.fields.find((f) => f.name === name);
     if (!found) throw new AccessDenied(`Unknown field "${name}" in ${where}`);
     if (found.sensitive) {
       throw new AccessDenied(`"${name}" is sensitive and cannot be aggregated`);
+    }
+    if (!visible.has(name)) {
+      throw new AccessDenied(`"${name}" is not part of the ${slug} view`);
     }
     return found;
   };

@@ -33,6 +33,23 @@ export default function Dashboard() {
 }
 `;
 
+const computedGlobal = `"use client";
+
+export default function Dashboard() {
+  globalThis["fetch"]("/api/apps/refunds/rows");
+  return <div />;
+}
+`;
+
+const reExporting = `"use client";
+
+export { PrismaClient } from "@prisma/client";
+
+export default function Dashboard() {
+  return <div />;
+}
+`;
+
 const dashboard = (status: ChangedFile["status"], head?: string): ChangedFile => ({
   status,
   path: "apps/refunds/dashboard.tsx",
@@ -47,6 +64,16 @@ describe("apps/** sandbox", () => {
 
   it("rejects a dashboard that imports Prisma", async () => {
     const violations = await lintDashboardSource(prismaImporting, "apps/refunds/dashboard.tsx");
+    expect(violations.length).toBeGreaterThan(0);
+  });
+
+  it("rejects reaching a global by computed access", async () => {
+    const violations = await lintDashboardSource(computedGlobal, "apps/refunds/dashboard.tsx");
+    expect(violations.length).toBeGreaterThan(0);
+  });
+
+  it("rejects re-exporting from a module outside the allowlist", async () => {
+    const violations = await lintDashboardSource(reExporting, "apps/refunds/dashboard.tsx");
     expect(violations.length).toBeGreaterThan(0);
   });
 

@@ -28,24 +28,34 @@ const money = (value: number) =>
 
 export default function RefundsDashboard({ app }: { app: string }) {
   const rows = useAppRows(app);
-  const byStatus = useAppAggregate(app, { groupBy: "status", measure: "amount" });
+  const valueByStatus = useAppAggregate(app, { groupBy: "status", measure: "amount" });
+  const countByStatus = useAppAggregate(app, { groupBy: "status" });
   const [busy, setBusy] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState<string[]>([]);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  if (rows.loading || byStatus.loading) return <Spinner label="Loading refunds…" />;
-  if (rows.error) return <MessageBar intent="error"><MessageBarBody>{rows.error}</MessageBarBody></MessageBar>;
+  const error = rows.error ?? valueByStatus.error ?? countByStatus.error;
+  if (error) return <MessageBar intent="error"><MessageBarBody>{error}</MessageBarBody></MessageBar>;
+  if (rows.loading || valueByStatus.loading || countByStatus.loading) {
+    return <Spinner label="Loading refunds…" />;
+  }
 
-  const pending = rows.rows.filter((row) => String(row.status) === "pending");
-  const pendingTotal = pending.reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
-  const approved = byStatus.groups.find((g) => g.key === "refunded");
-  const largest = [...pending].sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 5);
+  const openCount = countByStatus.groups.find((g) => g.key === "open")?.value ?? 0;
+  const openValue = valueByStatus.groups.find((g) => g.key === "open")?.value ?? 0;
+  const refunded = valueByStatus.groups.find((g) => g.key === "refunded")?.value ?? 0;
+  const largest = rows.rows
+    .filter((row) => String(row.status) === "open")
+    .sort((a, b) => Number(b.amount) - Number(a.amount))
+    .slice(0, 5);
 
   const issue = async (rowId: string) => {
     setBusy(rowId);
+    setSubmitted((ids) => [...ids, rowId]);
     setResult(await runAction(app, "issue_refund", rowId));
     setBusy(null);
     rows.reload();
-    byStatus.reload();
+    valueByStatus.reload();
+    countByStatus.reload();
   };
 
   return (
@@ -57,16 +67,16 @@ export default function RefundsDashboard({ app }: { app: string }) {
       ) : null}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 16 }}>
-        <Kpi label="Pending refunds" value={String(pending.length)} />
-        <Kpi label="Pending value" value={money(pendingTotal)} />
-        <Kpi label="Refunded to date" value={money(approved?.value ?? 0)} />
+        <Kpi label="Open refunds" value={String(openCount)} />
+        <Kpi label="Open value" value={money(openValue)} />
+        <Kpi label="Refunded to date" value={money(refunded)} />
       </div>
 
       <Card>
         <CardHeader header={<Subtitle2>Refund value by status</Subtitle2>} />
         <div style={{ height: 240, padding: 8 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={byStatus.groups}>
+            <BarChart data={valueByStatus.groups}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="key" tickLine={false} />
               <YAxis tickFormatter={(v: number) => money(v)} width={80} tickLine={false} />
@@ -79,11 +89,16 @@ export default function RefundsDashboard({ app }: { app: string }) {
 
       <Card>
         <CardHeader
-          header={<Subtitle2>Largest pending refunds</Subtitle2>}
-          description={<Caption1>Over $500 goes to an approver before it pays out.</Caption1>}
+          header={<Subtitle2>Largest open refunds</Subtitle2>}
+          description={
+            <Caption1>
+              Over $500 goes to an approver before it pays out.
+              {rows.capped ? ` Ranked within the first ${rows.rows.length} rows.` : ""}
+            </Caption1>
+          }
         />
         <div style={{ display: "grid", gap: 8, padding: 8 }}>
-          {largest.length === 0 ? <Body1>Nothing pending.</Body1> : null}
+          {largest.length === 0 ? <Body1>Nothing open.</Body1> : null}
           {largest.map((row) => (
             <div
               key={row.id}
@@ -94,10 +109,10 @@ export default function RefundsDashboard({ app }: { app: string }) {
               </Body1>
               <Button
                 appearance="primary"
-                disabled={busy !== null}
+                disabled={busy !== null || submitted.includes(row.id)}
                 onClick={() => issue(row.id)}
               >
-                {busy === row.id ? "Working…" : "Issue refund"}
+                {busy === row.id ? "Working…" : submitted.includes(row.id) ? "Submitted" : "Issue refund"}
               </Button>
             </div>
           ))}
