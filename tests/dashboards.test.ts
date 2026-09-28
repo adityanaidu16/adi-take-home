@@ -117,6 +117,7 @@ describe("kit client data path", () => {
     expect(analyst.sensitiveColumns).toContain("bank_account");
     for (const row of analyst.rows) expect(String(row.bank_account)).toMatch(/^••••/);
     expect(analyst.rows.length).toBeLessThanOrEqual(1000);
+    expect(Array.isArray(analyst.pendingRowIds)).toBe(true);
 
     const approver = await getAppRows("refunds", priya);
     expect(approver.masked).toBe(false);

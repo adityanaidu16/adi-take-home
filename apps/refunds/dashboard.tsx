@@ -43,6 +43,7 @@ export default function RefundsDashboard({ app }: { app: string }) {
   const openCount = countByStatus.groups.find((g) => g.key === "open")?.value ?? 0;
   const openValue = valueByStatus.groups.find((g) => g.key === "open")?.value ?? 0;
   const refunded = valueByStatus.groups.find((g) => g.key === "refunded")?.value ?? 0;
+  const awaiting = new Set([...rows.pendingRowIds, ...submitted]);
   const largest = rows.rows
     .filter((row) => String(row.status) === "open")
     .sort((a, b) => Number(b.amount) - Number(a.amount))
@@ -109,10 +110,10 @@ export default function RefundsDashboard({ app }: { app: string }) {
               </Body1>
               <Button
                 appearance="primary"
-                disabled={busy !== null || submitted.includes(row.id)}
+                disabled={busy !== null || awaiting.has(row.id)}
                 onClick={() => issue(row.id)}
               >
-                {busy === row.id ? "Working…" : submitted.includes(row.id) ? "Submitted" : "Issue refund"}
+                {busy === row.id ? "Working…" : awaiting.has(row.id) ? "Submitted" : "Issue refund"}
               </Button>
             </div>
           ))}
@@ -130,24 +131,28 @@ export default function RefundsDashboard({ app }: { app: string }) {
             ) : undefined
           }
         />
-        <Table size="small" aria-label="All refund requests">
-          <TableHeader>
-            <TableRow>
-              {rows.columns.map((column) => (
-                <TableHeaderCell key={column}>{column.replace(/_/g, " ")}</TableHeaderCell>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.rows.map((row) => (
-              <TableRow key={row.id}>
+        <div style={{ overflowX: "auto" }}>
+          <Table size="small" aria-label="All refund requests" style={{ minWidth: "max-content" }}>
+            <TableHeader>
+              <TableRow>
                 {rows.columns.map((column) => (
-                  <TableCell key={column}>{String(row[column] ?? "")}</TableCell>
+                  <TableHeaderCell key={column}>{column.replace(/_/g, " ")}</TableHeaderCell>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {rows.rows.map((row) => (
+                <TableRow key={row.id}>
+                  {rows.columns.map((column) => (
+                    <TableCell key={column} style={{ overflow: "visible", whiteSpace: "nowrap" }}>
+                      {String(row[column] ?? "")}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
     </div>
   );

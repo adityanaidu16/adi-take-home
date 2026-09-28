@@ -20,6 +20,8 @@ export type RowsResult = {
   columns: string[];
   /** Columns the data source declares sensitive; masked unless you may see them. */
   sensitiveColumns: string[];
+  /** Row ids with an approval request already awaiting a decision. */
+  pendingRowIds: string[];
   masked: boolean;
   /** True when the app has more rows than the server hands to a dashboard. */
   capped: boolean;
@@ -78,11 +80,20 @@ export function useAppRows(app: string): RowsResult {
       rows: (body.rows ?? []) as AppRow[],
       columns: (body.columns ?? []) as string[],
       sensitiveColumns: (body.sensitiveColumns ?? []) as string[],
+      pendingRowIds: (body.pendingRowIds ?? []) as string[],
       masked: Boolean(body.masked),
       capped: Boolean(body.capped),
       total: Number(body.total ?? 0),
     }),
-    { rows: [], columns: [], sensitiveColumns: [], masked: false, capped: false, total: 0 },
+    {
+      rows: [],
+      columns: [],
+      sensitiveColumns: [],
+      pendingRowIds: [],
+      masked: false,
+      capped: false,
+      total: 0,
+    },
   );
   return { ...data, loading, error, reload };
 }

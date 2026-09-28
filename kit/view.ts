@@ -2,6 +2,7 @@ import { getAction, getDataSource, type Row } from "@/kit/blocks";
 import { canSeeSensitive, canView, rolesFor } from "@/kit/auth/roles";
 import type { Session } from "@/kit/auth/session";
 import { audit } from "@/kit/audit/log";
+import { pendingRecordIds } from "@/kit/approvals/engine";
 import { loadApp, resolvedColumns } from "@/kit/config/loader";
 import type { AppConfig } from "@/kit/config/schema";
 
@@ -122,6 +123,7 @@ export type AppRowsPayload = {
   capped: boolean;
   masked: boolean;
   sensitiveColumns: string[];
+  pendingRowIds: string[];
 };
 
 /**
@@ -130,6 +132,7 @@ export type AppRowsPayload = {
  */
 export async function getAppRows(slug: string, session: Session): Promise<AppRowsPayload> {
   const view = await getAppView(slug, session);
+  const pending = await pendingRecordIds(view.slug);
   return {
     columns: view.columns,
     rows: view.rows.slice(0, ROW_LIMIT),
@@ -137,6 +140,7 @@ export async function getAppRows(slug: string, session: Session): Promise<AppRow
     capped: view.rows.length > ROW_LIMIT,
     masked: !view.showsSensitive,
     sensitiveColumns: view.sensitiveColumns,
+    pendingRowIds: Array.from(pending.keys()),
   };
 }
 
