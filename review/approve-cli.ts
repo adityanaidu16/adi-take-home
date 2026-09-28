@@ -14,13 +14,20 @@ if (!approver) {
   process.exit(2);
 }
 
-const changes = await withSandboxLint(changesAgainst(valueOf("--base") ?? "main"));
-const result = approve(changes, loadOwners(), approver);
+async function main() {
+  const changes = await withSandboxLint(changesAgainst(valueOf("--base") ?? "main"));
+  const result = approve(changes, loadOwners(), approver!);
 
-if (!result.ok) {
-  console.error(`REFUSED: ${result.reason}`);
-  process.exit(1);
+  if (!result.ok) {
+    console.error(`REFUSED: ${result.reason}`);
+    process.exit(1);
+  }
+
+  console.log("CONFIRMED by the owning team. Safe to merge.");
+  console.log(JSON.stringify(result.record, null, 2));
 }
 
-console.log("CONFIRMED by the owning team. Safe to merge.");
-console.log(JSON.stringify(result.record, null, 2));
+main().catch((err: Error) => {
+  console.error(err.message);
+  process.exit(1);
+});
