@@ -7,7 +7,7 @@ import { exportAppCsv } from "@/kit/view";
 
 export type ActionResult = { ok: boolean; message: string };
 
-export async function runAction(
+export async function runAppAction(
   slug: string,
   actionName: string,
   recordId: string,

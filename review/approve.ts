@@ -81,6 +81,17 @@ export function approve(
   }
 
   const apps = changes.filter((c) => /^apps\/[^/]+\.ya?ml$/.test(c.path));
+  // A dashboard-only change has no YAML in the diff, so the owner comes from
+  // the app's governance file as it stands.
+  for (const change of changes) {
+    const slug = /^apps\/([^/]+)\/dashboard\.tsx$/.exec(change.path)?.[1];
+    if (!slug || apps.some((a) => a.path.startsWith(`apps/${slug}.`))) continue;
+    const file = ["yaml", "yml"]
+      .map((ext) => path.join(process.cwd(), "apps", `${slug}.${ext}`))
+      .find((candidate) => fs.existsSync(candidate));
+    if (!file) return { ok: false, reason: `${change.path} has no apps/${slug}.yaml.` };
+    apps.push({ status: "M", path: `apps/${slug}.yaml`, base: fs.readFileSync(file, "utf8") });
+  }
   if (apps.length === 0) return { ok: false, reason: "No app config changed; nothing to confirm." };
 
   const owned: { path: string; owner: string }[] = [];

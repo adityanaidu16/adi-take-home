@@ -2,10 +2,13 @@ import { getAction, getDataSource, type Row } from "@/kit/blocks";
 import { canSeeSensitive, canView, rolesFor } from "@/kit/auth/roles";
 import type { Session } from "@/kit/auth/session";
 import { audit } from "@/kit/audit/log";
-import { loadApp } from "@/kit/config/loader";
+import { loadApp, resolvedColumns } from "@/kit/config/loader";
 import type { AppConfig } from "@/kit/config/schema";
 
 export class AccessDenied extends Error {}
+
+/** Hard ceiling on rows handed to a dashboard, so presentation cannot bulk-read. */
+export const ROW_LIMIT = 1000;
 
 export function mask(value: string | number | boolean | null): string {
   const text = value === null ? "" : String(value);
@@ -72,9 +75,10 @@ export async function getAppView(slug: string, session: Session): Promise<AppVie
   const sensitive = new Set(ds.fields.filter((f) => f.sensitive).map((f) => f.name));
   const showSensitive = canSeeSensitive(config, roles);
 
+  const columns = resolvedColumns(config);
   const rows = (await ds.read()).map((row) => {
     const out: Row = { id: row.id };
-    for (const column of config.view.columns) {
+    for (const column of columns) {
       out[column] = sensitive.has(column) && !showSensitive ? mask(row[column]) : row[column];
     }
     return out;
@@ -100,14 +104,91 @@ export async function getAppView(slug: string, session: Session): Promise<AppVie
     slug,
     config,
     roles,
-    columns: config.view.columns,
+    columns,
     rows,
     actions,
     isApprover,
     origin: ds.origin,
-    sensitiveColumns: config.view.columns.filter((c) => sensitive.has(c)),
+    sensitiveColumns: columns.filter((c) => sensitive.has(c)),
     showsSensitive: showSensitive,
     summary: summarise(config, rows),
+  };
+}
+
+export type AppRowsPayload = {
+  columns: string[];
+  rows: Row[];
+  total: number;
+  capped: boolean;
+  masked: boolean;
+  sensitiveColumns: string[];
+};
+
+/**
+ * What `useAppRows` receives: the same authorized, masked view the grid gets,
+ * capped so presentation cannot turn into a bulk export.
+ */
+export async function getAppRows(slug: string, session: Session): Promise<AppRowsPayload> {
+  const view = await getAppView(slug, session);
+  return {
+    columns: view.columns,
+    rows: view.rows.slice(0, ROW_LIMIT),
+    total: view.rows.length,
+    capped: view.rows.length > ROW_LIMIT,
+    masked: !view.showsSensitive,
+    sensitiveColumns: view.sensitiveColumns,
+  };
+}
+
+export type AggregateSpec = { groupBy: string; measure?: string };
+export type AggregateResult = {
+  groupBy: string;
+  measure: string | null;
+  groups: { key: string; value: number }[];
+};
+
+/**
+ * Aggregates for dashboards, computed here rather than in the browser so the
+ * raw rows never have to leave the server. A sensitive field can be neither
+ * the grouping nor the measure: an aggregate over it leaks it just as surely
+ * as a column would.
+ */
+export async function getAppAggregate(
+  slug: string,
+  session: Session,
+  spec: AggregateSpec,
+): Promise<AggregateResult> {
+  const config = loadApp(slug);
+  const roles = rolesFor(config, session);
+  if (!canView(config, roles)) throw new AccessDenied(`No access to ${slug}`);
+
+  const ds = getDataSource(config.datasource);
+  const field = (name: string, where: string) => {
+    const found = ds.fields.find((f) => f.name === name);
+    if (!found) throw new AccessDenied(`Unknown field "${name}" in ${where}`);
+    if (found.sensitive) {
+      throw new AccessDenied(`"${name}" is sensitive and cannot be aggregated`);
+    }
+    return found;
+  };
+
+  field(spec.groupBy, "groupBy");
+  if (spec.measure) {
+    const measure = field(spec.measure, "measure");
+    if (measure.type !== "number") throw new AccessDenied(`"${spec.measure}" is not a number`);
+  }
+
+  const totals = new Map<string, number>();
+  for (const row of await ds.read()) {
+    const key = String(row[spec.groupBy] ?? "");
+    const amount = spec.measure ? Number(row[spec.measure]) : 1;
+    totals.set(key, (totals.get(key) ?? 0) + (Number.isFinite(amount) ? amount : 0));
+  }
+
+  return {
+    groupBy: spec.groupBy,
+    measure: spec.measure ?? null,
+    groups: Array.from(totals, ([key, value]) => ({ key, value })).sort((a, b) => b.value - a.value),
   };
 }
 

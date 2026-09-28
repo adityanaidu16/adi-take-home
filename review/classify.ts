@@ -3,8 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
 import { actions as registeredActions, dataSources } from "@/kit/blocks";
-import { parseAppConfig } from "@/kit/config/loader";
+import { parseAppConfig, resolvedColumns } from "@/kit/config/loader";
 import type { AppConfig } from "@/kit/config/schema";
+import { DASHBOARD_PATH, lintDashboardSource } from "@/kit/sandbox";
 
 export type RuleName =
   | "file_outside_apps"
@@ -15,6 +16,7 @@ export type RuleName =
   | "roles_changed"
   | "sensitive_visibility_changed"
   | "sensitive_field_exposed"
+  | "dashboard_left_sandbox"
   | "high_risk_action";
 
 export type Rules = Record<RuleName, { enabled: boolean; reason: string }>;
@@ -27,11 +29,15 @@ export type ChangedFile = {
   base?: string;
   /** Contents on this branch, if the file still exists. */
   head?: string;
+  /** Sandbox lint failures, for `apps/<slug>/dashboard.tsx`. See withSandboxLint. */
+  lintErrors?: string[];
 };
 
 export type Classification = {
   decision: "SELF-SERVE" | "ESCALATE";
   reasons: string[];
+  /** Why something that looks like code was still allowed through. */
+  notes: string[];
 };
 
 export function loadRules(file = path.join(process.cwd(), "review", "rules.yaml")): Rules {
@@ -40,6 +46,27 @@ export function loadRules(file = path.join(process.cwd(), "review", "rules.yaml"
 
 function isAppConfigFile(file: string): boolean {
   return /^apps\/[^/]+\.ya?ml$/.test(file);
+}
+
+function isDashboardFile(file: string): boolean {
+  return DASHBOARD_PATH.test(file);
+}
+
+/**
+ * Runs the `apps/**` sandbox over every dashboard in the change set, so
+ * `classify` can stay synchronous and testable with fixed inputs.
+ */
+export async function withSandboxLint(changes: ChangedFile[]): Promise<ChangedFile[]> {
+  return Promise.all(
+    changes.map(async (change) => {
+      if (!isDashboardFile(change.path) || change.head === undefined) return change;
+      const violations = await lintDashboardSource(change.head, change.path);
+      return {
+        ...change,
+        lintErrors: violations.map((v) => `line ${v.line}: ${v.message}`),
+      };
+    }),
+  );
 }
 
 function safeParse(source: string, label: string): AppConfig | null {
@@ -57,7 +84,7 @@ function approvalOf(config: AppConfig, use: string) {
 /** Fields the data source marks sensitive that this config puts on screen. */
 function sensitiveColumns(config: AppConfig): string[] {
   return (dataSources[config.datasource]?.fields ?? [])
-    .filter((f) => f.sensitive && config.view.columns.includes(f.name))
+    .filter((f) => f.sensitive && resolvedColumns(config).includes(f.name))
     .map((f) => f.name);
 }
 
@@ -68,6 +95,7 @@ function stable(value: unknown): string {
 /** Compares parsed YAML keys, not text. Formatting changes alone never escalate. */
 export function classify(changes: ChangedFile[], rules: Rules): Classification {
   const reasons: string[] = [];
+  const notes: string[] = [];
   const add = (rule: RuleName, detail: string) => {
     if (!rules[rule]?.enabled) return;
     reasons.push(`${rules[rule].reason} (${detail})`);
@@ -76,6 +104,23 @@ export function classify(changes: ChangedFile[], rules: Rules): Classification {
   for (const change of changes) {
     if (!change.path.startsWith("apps/")) {
       add("file_outside_apps", change.path);
+      continue;
+    }
+
+    if (isDashboardFile(change.path)) {
+      // A dashboard is presentation. It cannot reach data or run an action
+      // except through the kit client API, and the sandbox lint is what makes
+      // that true — so a clean one is self-serve and a dirty one is not.
+      if (change.status === "D") {
+        notes.push(`${change.path} removed; the app falls back to the generic grid`);
+        continue;
+      }
+      const failures = change.lintErrors ?? [];
+      if (failures.length > 0) {
+        add("dashboard_left_sandbox", `${change.path}: ${failures.join("; ")}`);
+      } else {
+        notes.push(`${change.path}: presentation-only; data access via kit`);
+      }
       continue;
     }
 
@@ -138,8 +183,8 @@ export function classify(changes: ChangedFile[], rules: Rules): Classification {
   }
 
   return reasons.length > 0
-    ? { decision: "ESCALATE", reasons }
-    : { decision: "SELF-SERVE", reasons: [] };
+    ? { decision: "ESCALATE", reasons, notes }
+    : { decision: "SELF-SERVE", reasons: [], notes };
 }
 
 function git(args: string[]): string {

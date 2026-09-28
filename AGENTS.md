@@ -2,6 +2,10 @@
 
 - Apps are YAML files in `apps/`. Everything an app can do is declared there; it
   cannot introduce new capabilities.
+- An app may also own `apps/<name>/dashboard.tsx`: presentation only. It may
+  import `react`, `@fluentui/react-*`, `recharts` and `@/kit/client`, and gets
+  data and actions only through `useAppRows`, `useAppAggregate` and
+  `runAction`. `npm run validate` lints that sandbox.
 - Data sources and actions live in `kit/blocks/` and are the only place that
   talks to a database or an external API. Pages never query directly.
 - Sensitivity (`sensitive: true` on a field) and the minimum approval rule on an

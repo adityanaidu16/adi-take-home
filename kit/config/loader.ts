@@ -8,6 +8,27 @@ export const APPS_DIR = path.join(process.cwd(), "apps");
 
 export type LoadedApp = { slug: string; config: AppConfig };
 
+/**
+ * The columns a generic grid shows. `view.columns` is a presentation default,
+ * so it may be absent; the fallback is every field the data source does not
+ * declare sensitive. A sensitive field only ever reaches a screen because a
+ * config named it, which is what the classifier escalates on.
+ */
+export function resolvedColumns(config: AppConfig): string[] {
+  if (config.view.columns) return config.view.columns;
+  const ds = dataSources[config.datasource];
+  return (ds?.fields ?? []).filter((f) => !f.sensitive).map((f) => f.name);
+}
+
+/** A presentation file an app may own: `apps/<slug>/dashboard.tsx`. */
+export function dashboardPath(slug: string): string {
+  return path.join(APPS_DIR, slug, "dashboard.tsx");
+}
+
+export function hasDashboard(slug: string): boolean {
+  return fs.existsSync(dashboardPath(slug));
+}
+
 /** Parses and validates one app config against the registered building blocks. */
 export function parseAppConfig(source: string, label: string): AppConfig {
   let raw: unknown;
@@ -30,7 +51,7 @@ export function parseAppConfig(source: string, label: string): AppConfig {
   if (!ds) throw new Error(`${label}: unknown data source "${config.datasource}"`);
 
   const fieldNames = new Set(ds.fields.map((f) => f.name));
-  for (const column of config.view.columns) {
+  for (const column of config.view.columns ?? []) {
     if (!fieldNames.has(column)) {
       throw new Error(`${label}: unknown field "${column}" on ${config.datasource}`);
     }
@@ -44,7 +65,7 @@ export function parseAppConfig(source: string, label: string): AppConfig {
     const check = (name: string, where: string) => {
       const field = ds.fields.find((f) => f.name === name);
       if (!field) throw new Error(`${label}: unknown field "${name}" in ${where}`);
-      if (!config.view.columns.includes(name)) {
+      if (!resolvedColumns(config).includes(name)) {
         throw new Error(`${label}: "${name}" in ${where} is not one of view.columns`);
       }
       if (field.sensitive) {

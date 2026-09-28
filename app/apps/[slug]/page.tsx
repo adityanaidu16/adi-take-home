@@ -5,7 +5,9 @@ import { PageHeader } from "@/kit/ui/PageHeader";
 import { SignInPrompt } from "@/kit/ui/SignInPrompt";
 import { AccessDenied, getAppView } from "@/kit/view";
 import { pendingRecordIds } from "@/kit/approvals/engine";
-import { exportCsv, runAction } from "./actions";
+import { hasDashboard } from "@/kit/config/loader";
+import { exportCsv, runAppAction } from "./actions";
+import { AppDashboard } from "./dashboard-host";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +44,7 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
       label: action.label,
       risk: action.risk,
       disabled: action.appliesTo ? !action.appliesTo(row) : false,
-      run: runAction.bind(null, view.slug, action.name, String(row.id)),
+      run: runAppAction.bind(null, view.slug, action.name, String(row.id)),
     })),
   }));
 
@@ -59,14 +61,18 @@ export default async function AppPage({ params }: { params: { slug: string } }) 
             : [{ text: "Sensitive fields masked", tone: "warning" as const }]),
         ]}
       />
-      <AppGrid
-        columns={view.columns}
-        rows={rows}
-        sensitiveColumns={view.sensitiveColumns}
-        masked={!view.showsSensitive}
-        summary={view.summary}
-        exportCsv={exportCsv.bind(null, view.slug)}
-      />
+      {hasDashboard(params.slug) ? (
+        <AppDashboard slug={params.slug} />
+      ) : (
+        <AppGrid
+          columns={view.columns}
+          rows={rows}
+          sensitiveColumns={view.sensitiveColumns}
+          masked={!view.showsSensitive}
+          summary={view.summary}
+          exportCsv={exportCsv.bind(null, view.slug)}
+        />
+      )}
     </>
   );
 }

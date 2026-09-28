@@ -41,8 +41,17 @@ determine from the repo:
 - Which registered data source covers it? Check `kit/blocks/index.ts` and
   `kit/blocks/graph/lists.ts` for already-registered SharePoint lists.
 
-## 2. Decide config or code
+## 2. Decide config, presentation or code
 
+Governance and presentation are separate files, and which one a request touches
+decides both the work and the review path.
+
+- **They describe access, data or approvals** — who may use it, who approves,
+  which fields are sensitive, which data source — → change `apps/<name>.yaml`.
+  That file is the governance file and the classifier's rules apply to it.
+- **They describe a view** — tiles, a chart, a layout, "put the big ones at the
+  top", "make it look like a dashboard" → write `apps/<name>/dashboard.tsx`.
+  When it exists, `/apps/<name>` renders it instead of the generic grid.
 - **Existing building blocks cover it** → change only `apps/<name>.yaml`.
 - **It needs a new data source, action or SharePoint list** → say so explicitly
   in your reply, write it in `kit/blocks/`, and expect engineering review. Never
@@ -50,6 +59,25 @@ determine from the repo:
 
 Never remove or loosen an action's `minApproval`, and never change a field's
 sensitivity to make an app easier to build.
+
+### Writing a dashboard
+
+A dashboard is presentation and nothing else. It may import only `react`,
+`@fluentui/react-components`, `@fluentui/react-icons`, `recharts` and
+`@/kit/client`, which is the only way it gets data or does anything:
+
+- `useAppRows(app)` — rows already authorized and masked on the server, capped
+  at 1,000.
+- `useAppAggregate(app, { groupBy, measure })` — totals computed on the server;
+  a sensitive field is refused as either the grouping or the measure.
+- `runAction(app, action, rowId)` — the same server action path the grid uses,
+  so maker-checker and audit are unchanged.
+
+`npm run validate` lints `apps/**` against that sandbox. A dashboard that
+passes is presentation-only and self-serve; one that calls `fetch`, touches
+`process`, imports Prisma or declares `"use server"` fails the lint and
+escalates. Do not work around the sandbox — if a view genuinely needs data the
+kit API cannot give it, that is a change in `kit/`, reviewed by engineering.
 
 ## 3. Validate and classify
 

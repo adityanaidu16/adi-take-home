@@ -1,9 +1,9 @@
-import { changesAgainst, classify, loadRules } from "./classify";
+import { changesAgainst, classify, loadRules, withSandboxLint } from "./classify";
 
 const baseFlag = process.argv.indexOf("--base");
 const base = baseFlag === -1 ? "main" : process.argv[baseFlag + 1];
 
-const changes = changesAgainst(base);
+const changes = await withSandboxLint(changesAgainst(base));
 const result = classify(changes, loadRules());
 
 console.log(`Changed files (vs ${base}):`);
@@ -17,3 +17,5 @@ if (result.decision === "SELF-SERVE") {
   console.log("ESCALATE: engineering review");
   for (const reason of result.reasons) console.log(`  - ${reason}`);
 }
+
+for (const note of result.notes) console.log(`  note: ${note}`);
